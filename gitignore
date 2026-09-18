@@ -1,0 +1,22 @@
+# --- data & build artifacts ---------------------------------------------------
+# sponsor.db is rebuilt by sponsor_pipeline.py AND accumulates real outreach
+# notes (human data). Never commit it. The app builds a demo store on the fly
+# when it's absent, so the cloud demo works without any DB in the repo.
+sponsor.db
+*.db
+
+# --- secrets — never commit the API key --------------------------------------
+.env
+.streamlit/secrets.toml
+
+# --- python -------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+
+# --- os / editor --------------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
