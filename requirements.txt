@@ -1,0 +1,9 @@
+# Dumbarton FC — Sponsor Intelligence Tool
+# Streamlit Cloud installs from this file. The app itself only needs streamlit +
+# pandas; the rest are for the pipeline and the standalone scoring demo.
+streamlit>=1.36      # sponsor_app.py — the action-queue UI
+pandas>=2.0          # used everywhere
+numpy>=1.26          # sponsor_scoring.py / sponsor_pipeline.py — synthetic data
+pyyaml>=6.0          # loads sponsor_config.yaml
+requests>=2.31       # soft_features.py --llm — the real Anthropic call only
+matplotlib>=3.8      # sponsor_scoring.py — the standalone ranked-queue chart only
