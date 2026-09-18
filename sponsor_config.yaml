@@ -1,0 +1,80 @@
+# =============================================================================
+# sponsor_config.yaml  —  Dumbarton FC Sponsor Intelligence Tool
+# =============================================================================
+# All tuning lives here so weights + the sector table change WITHOUT touching
+# code. The whole design philosophy is in one line of these weights:
+# community affinity + proximity dominate; raw company size is deliberately
+# light. Dumbarton sells LOCAL AFFINITY, not reach (~700 avg attendance).
+# -----------------------------------------------------------------------------
+
+# --- composite weights (must sum to 100) -------------------------------------
+# Each feature is normalised to 0..1, multiplied by its weight, summed -> 0..100.
+weights:
+  community_affinity: 22   # LLM soft feature — the headline: local pride / rootedness
+  proximity:          20   # deterministic — distance decay from the ground
+  sector_propensity:  15   # deterministic lookup (v2: REPLACED by lookalike_score)
+  brand_fit:          12   # LLM soft feature — does backing a club suit them
+  company_stability:  11   # deterministic — are they solvent & actually trading
+  csr_signal:         10   # LLM soft feature — visible community-mindedness
+  ability_to_pay:     10   # deterministic — size band, kept LIGHT on purpose
+
+# --- proximity: exponential decay on distance from the stadium ---------------
+proximity:
+  decay_km: 6.0            # score = exp(-distance_km / decay_km); ~0.4 at 6km
+
+# --- ability to pay: size band -> 0..1 (light-weighted, so size can't dominate)
+ability_to_pay:
+  micro:  0.35
+  small:  0.60
+  medium: 0.85
+  large:  1.00
+  unknown: 0.50
+
+# --- company stability: trust from age, penalty for dormant accounts ---------
+stability:
+  age_scale_years: 5.0     # score = 1 - exp(-age/scale); saturates with age
+  dormant_penalty: 0.5     # multiply score by this if accounts are dormant
+
+# --- LLM soft-feature guardrail ----------------------------------------------
+# Low-confidence reads pull toward neutral rather than swinging the score:
+#   effective = value*confidence + neutral*(1-confidence)
+soft_features:
+  neutral: 0.5
+
+# --- sector propensity table -------------------------------------------------
+# Authored from lower-league Scottish sponsorship patterns. The v2 lookalike
+# engine LEARNS this from real data and replaces it — for now it's the honest
+# hand table (flagged as such in any pitch).
+sector_propensity:
+  transport_coaches_haulage:            0.90   # proven (Marbill sponsors The Rock)
+  building_construction_trades:         0.90   # classic lower-league backbone
+  pubs_bars_hospitality:                0.85   # matchday-adjacent, community-facing
+  motor_dealers_garages:                0.85   # owner-led, board & programme regulars
+  local_professional_services:          0.75   # accountants/solicitors/estate agents
+  funeral_directors:                    0.70   # consistently loyal at this level
+  food_takeaway_restaurants:            0.70   # local, footfall overlap
+  utilities_renewables_heating:         0.70   # cash-generative trades wanting trust
+  health_fitness_physio_dental:         0.65   # community-facing, audience overlap
+  independent_retail:                   0.60   # willing but smaller budgets
+  national_chain:                       0.20   # decisions not local; affinity misses
+  online_ecommerce:                     0.25   # no local-visibility motive
+  public_sector_charity:                0.30   # rarely a paying sponsor (flag as partner)
+  unknown:                              0.45   # unclassified — neutral-ish default
+
+# --- tier recommendation: business type -> suggested inventory ---------------
+# Separate OUTPUT from the score. Matches prospect type to what to offer.
+tier_map:
+  transport_coaches_haulage:    "B2B — programme, website, training-wear"
+  building_construction_trades: "B2B — programme, website, training-wear"
+  local_professional_services:  "B2B — programme, website, training-wear"
+  utilities_renewables_heating: "B2B — programme, website, training-wear"
+  pubs_bars_hospitality:        "Consumer — matchday, hospitality, visible board"
+  motor_dealers_garages:        "Consumer — matchday, hospitality, visible board"
+  food_takeaway_restaurants:    "Consumer — matchday, hospitality, visible board"
+  independent_retail:           "Consumer — matchday, hospitality, visible board"
+  funeral_directors:            "Community — programme + community-programme naming"
+  health_fitness_physio_dental: "Community — bundle the 4G pitch (pitch-time/naming)"
+  public_sector_charity:        "Partner (not paid sponsor) — flag separately"
+  national_chain:               "Low priority — decisions likely not local"
+  online_ecommerce:             "Low priority — no local-visibility motive"
+  unknown:                      "Review — classify sector first"
