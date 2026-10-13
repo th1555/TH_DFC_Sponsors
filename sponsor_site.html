@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Sons Sponsors · Dumbarton FC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#F5B800; --gold-deep:#B38600; --gold-wash:#FFF6D6;
+  --ink:#1F2428; --ink-2:#2C3238;
+  --text:#22272B; --muted:#5B636B; --faint:#8A929A;
+  --bg:#F3F4F5; --panel:#FFFFFF; --line:#E1E4E7; --line-2:#CDD2D6;
+  --hover:#FBF8EC; --sel:#FFF3C4;
+  --display:"Big Shoulders Display","Arial Narrow",sans-serif;
+  --sans:"Atkinson Hyperlegible","Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-font-smoothing:antialiased;
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #1F6FD1;outline-offset:2px}
+.num,td.n{font-variant-numeric:tabular-nums}
+
+/* ---------- app bar ---------- */
+.appbar{background:var(--ink);color:#fff;position:sticky;top:0;z-index:30;padding-top:env(safe-area-inset-top,0px)}
+.appbar .in{display:flex;align-items:center;gap:22px;height:60px;padding:0 24px;max-width:1560px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:11px;white-space:nowrap}
+.brand img{height:34px;width:auto}
+.brand b{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:.3px;line-height:1}
+.brand span{color:#AEB5BC;font-size:14px;border-left:1px solid #48505A;padding-left:11px}
+.nav{display:flex;height:100%;margin-left:6px}
+.nav a{display:flex;align-items:center;padding:0 14px;color:#AEB5BC;text-decoration:none;font-weight:700;font-size:15px;border-bottom:3px solid transparent;padding-top:3px}
+.nav a:hover{color:#fff}
+.nav a[aria-current="page"]{color:#fff;border-bottom-color:var(--gold)}
+.asof{margin-left:auto;color:#AEB5BC;font-size:14px;white-space:nowrap}
+.asof b{color:#fff;font-weight:700}
+.labtag{background:var(--gold);color:var(--ink);font-weight:700;font-size:12.5px;border-radius:4px;padding:2px 8px;letter-spacing:.4px;text-transform:uppercase}
+
+/* ---------- page head ---------- */
+.shell{max-width:1560px;margin:0 auto;padding:0 24px}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding:24px 0 18px;flex-wrap:wrap}
+.pagehead h1{font-family:var(--display);font-weight:900;font-size:44px;line-height:.95;margin:0;color:var(--ink);letter-spacing:.2px}
+.pagehead p{margin:8px 0 0;color:var(--muted);max-width:74ch;font-size:16px}
+.kpis{display:flex;gap:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.kpi{padding:10px 18px;border-left:1px solid var(--line);min-width:120px}
+.kpi:first-child{border-left:0}
+.kpi b{display:block;font-family:var(--display);font-weight:800;font-size:28px;line-height:1;color:var(--ink)}
+.kpi span{font-size:13px;color:var(--muted)}
+
+.notice{display:flex;gap:12px;align-items:flex-start;background:var(--gold-wash);border:1px solid #EED78A;border-radius:8px;padding:11px 16px;margin:0 0 18px;font-size:15px}
+.notice svg{flex:none;margin-top:2px}
+.notice b{font-weight:700}
+.notice.demo{background:#fff;border:2px dashed var(--gold-deep)}
+.notice.lab{background:var(--ink);border-color:var(--ink);color:#E3E6E8}
+.notice.lab b{color:var(--gold)}
+
+/* ---------- layout ---------- */
+.layout{display:grid;grid-template-columns:272px minmax(0,1fr);gap:20px;align-items:start}
+.filters{background:var(--panel);border:1px solid var(--line);border-radius:8px;position:sticky;top:76px;max-height:calc(100vh - 92px);overflow:auto}
+.filters header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.filters header h2{margin:0;font-size:16px;font-weight:700}
+.linkbtn{border:0;background:none;color:#1F5FAF;font-weight:700;font-size:14px;cursor:pointer;padding:4px}
+.linkbtn:hover{text-decoration:underline}
+.fgroup{padding:14px 16px;border-bottom:1px solid var(--line)}
+.fgroup:last-child{border-bottom:0}
+.flabel{display:block;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px}
+.fgroup select,.fgroup input[type=search]{width:100%;border:1px solid var(--line-2);border-radius:6px;background:#fff;padding:8px 10px;font-size:15.5px}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:6px;overflow:hidden}
+.seg button{flex:1;border:0;border-left:1px solid var(--line-2);background:#fff;padding:8px 6px;font-size:14.5px;cursor:pointer}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff;font-weight:700}
+.chk{display:flex;gap:9px;align-items:center;font-size:15px;padding:4px 0;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--ink);margin:0;flex:none}
+.chk .c{margin-left:auto;color:var(--faint);font-size:13.5px}
+.hint{font-size:13px;color:var(--muted);margin:7px 0 0;line-height:1.35}
+
+/* ---------- results panel ---------- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-width:0}
+.toolbar{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.toolbar h2{margin:0;font-size:18px;font-weight:700}
+.toolbar h2 span{color:var(--muted);font-weight:400;font-size:15px;margin-left:6px}
+.toolbar .sp{flex:1}
+.tabs{display:flex;background:var(--bg);border-radius:7px;padding:3px}
+.tabs button{border:0;background:none;padding:6px 14px;border-radius:5px;font-size:14.5px;cursor:pointer;color:var(--muted);font-weight:700}
+.tabs button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.btn{border:1px solid var(--line-2);background:#fff;border-radius:6px;padding:7px 13px;font-size:14.5px;font-weight:700;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+.btn:hover{border-color:var(--ink)}
+.fbtn{display:none}
+
+/* ---------- table ---------- */
+.tscroll{overflow:auto;max-height:calc(100vh - 210px);min-height:320px}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;font-size:15px}
+.grid th{position:sticky;top:0;z-index:2;background:#F8F9FA;text-align:right;font-size:12.5px;font-weight:700;color:var(--muted);
+  padding:0;border-bottom:1px solid var(--line-2);white-space:nowrap;vertical-align:bottom}
+.grid thead tr.grp th{top:0;height:26px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;text-align:center;padding:5px 8px 3px;border-bottom:0;color:var(--faint)}
+.grid thead tr.grp th.l2{color:var(--ink);background:#FFF3C4;border-bottom:2px solid var(--gold)}
+.grid thead tr.cols th{top:26px}
+.grid th button{all:unset;box-sizing:border-box;display:block;width:100%;padding:8px 8px;cursor:pointer;text-align:inherit}
+.grid th button:hover{color:var(--ink)}
+.grid th[aria-sort="descending"] button,.grid th[aria-sort="ascending"] button{color:var(--ink)}
+.grid th[aria-sort="descending"] button::after{content:" ▼";font-size:10px}
+.grid th[aria-sort="ascending"] button::after{content:" ▲";font-size:10px}
+.grid th.l,.grid td.l{text-align:left}
+.grid th.l2c{background:#FFFAE6}
+.grid td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:middle}
+.grid td.l2c{background:#FFFCF0}
+.grid tbody tr{cursor:pointer}
+.grid tbody tr:hover td{background:var(--hover)}
+.grid td.rk{color:var(--faint);font-size:13.5px;width:40px}
+.grid td.pl{min-width:220px;white-space:normal}
+.pl .nm{font-weight:700;font-size:15.5px;color:var(--ink)}
+.grid tbody tr:hover .nm{text-decoration:underline;text-underline-offset:3px}
+.pl .cl{display:block;font-size:13.5px;color:var(--muted);line-height:1.3;margin-top:1px}
+.pl .mob{display:none}
+.pl .fl{display:block;font-size:12.5px;color:#8A4B00;margin-top:3px}
+.warm{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:999px;background:var(--gold);color:var(--ink);font-size:11.5px;font-weight:700;vertical-align:2px}
+.grid td.main{font-weight:700;font-size:16px;color:var(--ink)}
+.score{display:inline-flex;align-items:center;gap:8px;justify-content:flex-end}
+.score i{display:block;width:64px;height:8px;background:#EEF0F2;border-radius:2px;position:relative;overflow:hidden}
+.score i s{position:absolute;left:0;top:0;bottom:0;background:var(--ink);border-radius:0 2px 2px 0}
+.score i s.top{background:var(--gold)}
+.dim{color:var(--faint)}
+.ap{font-size:14px}
+.ap b{font-weight:700;color:var(--ink)}
+.st{display:inline-block;padding:2px 9px;border-radius:4px;font-size:13px;font-weight:700;white-space:nowrap}
+.st.new{color:var(--faint);font-weight:400;padding-left:0}
+.st.to-approach{background:var(--gold-wash);color:var(--ink);box-shadow:inset 0 0 0 1px #EED78A}
+.st.contacted,.st.in-talks{background:var(--ink);color:var(--gold)}
+.st.won{background:var(--gold);color:var(--ink)}
+.st.dead{background:#EEF0F2;color:var(--muted)}
+.empty{padding:48px 20px;text-align:center;color:var(--muted)}
+.tfoot{padding:10px 16px;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted);display:flex;gap:18px;flex-wrap:wrap}
+
+/* ---------- scatter ---------- */
+.chartwrap{padding:12px 16px 4px;position:relative}
+.chartwrap svg{display:block;width:100%;height:auto}
+.chartwrap text{font-family:var(--sans)}
+.dotp{cursor:pointer}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:6px;padding:8px 11px;font-size:13.5px;line-height:1.35;
+  box-shadow:0 6px 18px rgba(0,0,0,.2);opacity:0;transition:opacity .08s;max-width:260px;z-index:5}
+.tip b{display:block;font-size:14.5px}
+.tip .t2{color:#C9CED3}
+.chartnote{padding:0 16px 14px;font-size:14px;color:var(--muted);max-width:90ch}
+
+/* ---------- method sections ---------- */
+.below{display:grid;grid-template-columns:1.15fr 1fr;gap:20px;margin:20px 0 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px 22px}
+.card h2{margin:0 0 10px;font-size:20px;font-weight:700;color:var(--ink)}
+.card h3{margin:16px 0 6px;font-size:16px}
+.card p{margin:0 0 10px;max-width:70ch}
+.formula{background:var(--bg);border-radius:6px;padding:12px 14px;margin:6px 0 12px;font-size:15px}
+.formula b{font-variant-numeric:tabular-nums}
+.lg{display:grid;grid-template-columns:minmax(120px,200px) minmax(80px,1fr) 46px;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.lg .tr{height:10px;background:var(--bg);border-radius:2px;position:relative}
+.lg .tr i{position:absolute;left:0;top:0;bottom:0;background:#7D868E;border-radius:0 3px 3px 0}
+.lg .tr s{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.lg.base .tr i{background:var(--gold)}
+.lg.soft .tr i{background:repeating-linear-gradient(45deg,#C5CBD0 0 3px,#9AA2A9 3px 5px)}
+.lg .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.limits{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.limits div{border-top:3px solid var(--line-2);padding-top:10px}
+.limits h3{margin:0 0 6px}
+.limits p{font-size:15px;margin:0;color:var(--text)}
+footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
+
+/* ---------- profile drawer ---------- */
+.scrim{position:fixed;inset:0;background:rgba(20,24,28,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(760px,100%);background:var(--bg);z-index:41;
+  transform:translateX(102%);visibility:hidden;transition:transform .26s cubic-bezier(.2,.7,.2,1),visibility 0s linear .26s;overflow-y:auto}
+.drawer.open{transform:none;visibility:visible;transition:transform .26s cubic-bezier(.2,.7,.2,1);box-shadow:-16px 0 40px rgba(0,0,0,.2)}
+.d-top{background:var(--ink);color:#fff;padding:18px 26px 20px;padding-top:calc(18px + env(safe-area-inset-top,0px));position:sticky;top:0;z-index:2;border-bottom:4px solid var(--gold)}
+.d-top .x{float:right;border:1px solid #5A636C;background:transparent;color:#fff;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer;font-size:14.5px}
+.d-top .x:hover{background:#fff;color:var(--ink)}
+.d-top .pos{color:#AEB5BC;font-size:14.5px}
+.d-top h2{font-family:var(--display);font-weight:900;font-size:clamp(34px,5.4vw,50px);line-height:.95;margin:4px 0 8px;color:#fff}
+.d-top .club{font-size:16px;color:#E3E6E8}
+.d-top .club a{color:var(--gold)}
+.tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tags span{border:1px solid #4E575F;border-radius:999px;padding:3px 11px;font-size:13.5px;color:#E3E6E8}
+.tags span b{color:#fff}
+.tags span.hl{border-color:var(--gold);color:var(--gold)}
+.tags span.hl b{color:var(--gold)}
+.d-body{padding:18px 26px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.dcard{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.dcard h3{margin:0 0 4px;font-size:16px;font-weight:700;color:var(--ink)}
+.dcard .sub{margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+.dcard.proto{border:2px dashed var(--gold-deep)}
+.hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+.hero div{padding:4px 14px 4px 0}
+.hero div+div{border-left:1px solid var(--line);padding-left:14px}
+.hero b{display:block;font-family:var(--display);font-weight:800;font-size:40px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.hero b small{font-size:20px;color:var(--faint);font-weight:700}
+.hero span{font-size:13.5px;color:var(--muted)}
+.hero div.key span{color:var(--ink);font-weight:700}
+.pb{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) 78px;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}
+.pb:first-of-type{border-top:0}
+.pb .bar{height:12px;background:#EEF0F2;border-radius:2px;position:relative}
+.pb .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink);border-radius:0 3px 3px 0}
+.pb .bar i.top{background:var(--gold)}
+.pb .bar i.soft{background:repeating-linear-gradient(45deg,#7D868E 0 3px,#5B636B 3px 5px)}
+.pb .pv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.pb .pv small{color:var(--faint);font-weight:400}
+.pb .k small{display:block;color:var(--faint);font-size:12.5px}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.facts div{padding:10px 12px;border-left:1px solid var(--line)}
+.facts div:first-child{border-left:0}
+.facts b{display:block;font-size:19px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.facts span{font-size:13px;color:var(--muted)}
+.callout{border-left:4px solid var(--gold);background:#FFFCF0;padding:10px 14px;border-radius:0 6px 6px 0;margin:10px 0 0;font-size:14.5px}
+.callout b{display:block;color:var(--ink)}
+.callout.warn{border-left-color:#C2410C;background:#FFF7F2}
+.reading{border-top:1px solid var(--line);padding:10px 0}
+.reading:first-of-type{border-top:0}
+.reading .top{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) 128px;gap:12px;align-items:center}
+.reading q{display:block;margin:6px 0 0;font-size:14px;color:var(--muted);quotes:"“" "”"}
+.conf{font-size:12.5px;color:var(--faint);font-weight:400}
+.caveat{font-size:14px;color:var(--muted);border-left:3px solid var(--gold);padding:4px 0 4px 12px;margin:0}
+
+/* ---------- responsive ---------- */
+@media (max-width:1300px){ .hide-l{display:none} }
+.grp th:empty{background:#F8F9FA}
+@media (max-width:1100px){
+  .layout{grid-template-columns:1fr}
+  .filters{position:fixed;inset:0 auto 0 0;width:min(340px,92vw);max-height:none;height:100%;border-radius:0;z-index:45;transform:translateX(-102%);visibility:hidden;transition:transform .24s,visibility 0s linear .24s;top:0;padding-top:env(safe-area-inset-top,0px)}
+  .filters.open{transform:none;visibility:visible;transition:transform .24s;box-shadow:16px 0 40px rgba(0,0,0,.2)}
+  .fbtn{display:inline-flex}
+  .closef{display:inline-block!important}
+  .below{grid-template-columns:1fr}
+  .tscroll{max-height:none}
+  .grid thead tr.cols th{top:0}
+  .grid thead tr.grp{display:none}
+}
+@media (max-width:860px){
+  .hide-m{display:none}
+  .pl .mob{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+  .kpis{width:100%}.kpi{flex:1;min-width:0;padding:8px 12px}
+  .asof{display:none}
+  .score i{width:40px}
+}
+@media (max-width:560px){
+  .reading .top{grid-template-columns:1fr 128px!important}
+  .shell{padding:0 16px}
+  .appbar .in{padding:0 16px;gap:12px}
+  .brand span,.nav{display:none}
+  .pagehead h1{font-size:36px}
+  .kpi b{font-size:22px}
+  .grid td{padding:8px 6px}
+  .grid td.pl{min-width:0}
+  .grid td.rk{display:none}.grid th.rkh{display:none}
+  .d-top,.d-body{padding-left:16px;padding-right:16px}
+  .hero b{font-size:32px}
+  .pb,.reading .top{grid-template-columns:1fr 70px}.pb .bar,.reading .top .bar{grid-column:1/-1;grid-row:2}
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .facts div:nth-child(3){border-left:0}.facts div:nth-child(n+3){border-top:1px solid var(--line)}
+  .toolbar{padding:10px 12px}
+}
+.closef{display:none}
+@media (prefers-reduced-motion:reduce){.drawer,.scrim,.filters{transition:none}}
+@media print{.appbar,.filters,.toolbar .btn,.tabs,.scrim{display:none}.layout{grid-template-columns:1fr}.tscroll{max-height:none;overflow:visible}}
+</style>
+</head>
+<body>
+
+<div class="appbar"><div class="in">
+  <div class="brand"><img src="crest.png" alt="" onerror="this.remove()"><b>DUMBARTON FC</b><span>Sons Sponsors</span></div>
+  <nav class="nav" id="nav" aria-label="Sections"></nav>
+  <div class="asof" id="asof"></div>
+</div></div>
+
+<div class="shell">
+  <div class="pagehead">
+    <div>
+      <h1>Local sponsors</h1>
+      <p>Businesses around the ground, ranked by how well they fit as a Dumbarton sponsor. The ranking rewards <strong>being local and being the kind of business that backs a town club</strong>, not size.</p>
+    </div>
+    <div class="kpis" id="kpis"></div>
+  </div>
+
+  <div id="notices"></div>
+
+  <div class="layout">
+    <aside class="filters" id="filters" aria-label="Filters">
+      <header><h2>Filters</h2><span><button class="linkbtn" id="reset" type="button">Reset</button> <button class="linkbtn closef" id="closeF" type="button">Done</button></span></header>
+      <div class="fgroup">
+        <label class="flabel" for="fSearch">Search</label>
+        <input id="fSearch" type="search" placeholder="Business or street" autocomplete="off">
+      </div>
+      <div class="fgroup">
+        <span class="flabel" id="secL">Sector</span>
+        <div id="secBox" role="group" aria-labelledby="secL"></div>
+        <p class="hint"><button class="linkbtn" type="button" id="secAll" style="padding:0">All</button> · <button class="linkbtn" type="button" id="secNone" style="padding:0">None</button></p>
+      </div>
+      <div class="fgroup">
+        <label class="flabel" for="fDist">Distance from the ground</label>
+        <select id="fDist">
+          <option value="0">Any distance</option>
+          <option value="2">Within 2 km</option>
+          <option value="5">Within 5 km</option>
+          <option value="10">Within 10 km</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <span class="flabel" id="sizeL">Company size</span>
+        <div class="seg" id="sizeSeg" role="group" aria-labelledby="sizeL">
+          <button type="button" data-v="" aria-pressed="true">Any</button>
+          <button type="button" data-v="small" aria-pressed="false">Small +</button>
+          <button type="button" data-v="medium" aria-pressed="false">Medium +</button>
+        </div>
+        <p class="hint">From Companies House accounts. Size counts for little in the ranking, on purpose.</p>
+      </div>
+      <div class="fgroup">
+        <label class="flabel" for="fStatus">Outreach</label>
+        <select id="fStatus">
+          <option value="">Any status</option>
+          <option value="new">Not contacted yet</option>
+          <option value="live">In progress</option>
+          <option value="won">Won</option>
+          <option value="dead">Not now</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <label class="chk"><input id="fLocal" type="checkbox" checked> Hide national chains and online-only</label>
+        <label class="chk"><input id="fDormant" type="checkbox"> Hide dormant or not trading</label>
+      </div>
+    </aside>
+
+    <section class="panel" aria-label="Results">
+      <div class="toolbar">
+        <button class="btn fbtn" id="openF" type="button" aria-controls="filters">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h14M4 8h8M6.5 13h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Filters</button>
+        <h2 id="count"></h2>
+        <span class="sp"></span>
+        <div class="tabs" role="tablist" aria-label="View">
+          <button type="button" role="tab" id="tabT" aria-selected="true" aria-controls="viewT">Table</button>
+          <button type="button" role="tab" id="tabC" aria-selected="false" aria-controls="viewC">Map of fit</button>
+        </div>
+        <button class="btn" id="download" type="button">
+          <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v9M4 7l4 4 4-4M2 14.5h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>CSV</button>
+      </div>
+
+      <div id="viewT" role="tabpanel" aria-labelledby="tabT">
+        <div class="tscroll">
+          <table class="grid" id="grid">
+            <thead>
+              <tr class="grp" id="grp"></tr>
+              <tr class="cols" id="head"></tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div class="tfoot" id="tfoot"></div>
+      </div>
+
+      <div id="viewC" role="tabpanel" aria-labelledby="tabC" hidden>
+        <div class="chartwrap" id="chartwrap"><div class="tip" id="tip"></div></div>
+        <p class="chartnote" id="chartnote"></p>
+      </div>
+    </section>
+  </div>
+
+  <div class="below">
+    <div style="display:grid;gap:20px;align-content:start">
+    <section class="card" id="method">
+      <h2 id="mTitle"></h2>
+      <div id="mBody"></div>
+      <div class="formula" id="example"></div>
+      <h3>How the points are split</h3>
+      <div id="weightBars"></div>
+    </section>
+    <section class="card">
+      <h2>Limitations</h2>
+      <div class="limits">
+        <div><h3>Records, not relationships</h3><p>The tool knows where a business is, what it does and what Companies House holds on it. It can't see the owner, their budget, whether they already back another club, or who at Dumbarton knows them. A phone call will tell you more than any score here.</p></div>
+        <div><h3>Registered companies only</h3><p>Sole traders and partnerships aren't on Companies House, so many chippies, trades and shops show as Unclassified and score lower on trading record than they deserve. A registered office can also be the accountant's address, not the shop.</p></div>
+        <div><h3>A set of choices, not a measurement</h3><p>The weights put local ties ahead of size, and the sector rates are hand-set from how lower-league clubs are usually sponsored. Both are judgments the club can change. Treat close scores as a tie.</p></div>
+      </div>
+    </section>
+    </div>
+    <section class="card" style="align-self:start">
+      <h2>How sectors compare</h2>
+      <p style="font-size:14.5px;color:var(--muted)">How often each kind of business sponsors a club like Dumbarton, on a 0 to 1 scale. The line marks the middle.</p>
+      <div id="sectorBars"></div>
+      <p class="hint" style="margin-top:10px">Hand-set for now. The planned lookalike engine will learn these from who actually sponsors clubs like Dumbarton across Scotland.</p>
+    </section>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dName" aria-hidden="true" tabindex="-1"></aside>
+
+<script>
+const DATA = /*__DATA__*/null;
+const LAB = !!DATA.lab;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const niceDate = iso => { if(!iso) return ""; const [y,m,d] = String(iso).slice(0,10).split("-").map(Number); return d&&m ? `${d} ${MONTHS[m-1]} ${y}` : String(iso); };
+const f0 = v => (v==null || isNaN(v)) ? "–" : Math.round(v);
+const km = v => (v==null || isNaN(v)) ? "–" : (v < 10 ? Number(v).toFixed(1) : Math.round(v)) + " km";
+const median = a => { a = [...a].sort((x,y)=>x-y); return a.length ? (a.length % 2 ? a[(a.length-1)/2] : (a[a.length/2-1] + a[a.length/2]) / 2) : null; };
+
+/* ---------- words ---------- */
+const STATUS = {"new":"Not contacted","to-approach":"To approach","contacted":"Contacted","in-talks":"In talks","won":"Won","dead":"Not now"};
+const LIVE = new Set(["to-approach","contacted","in-talks"]);
+const SIZE = {micro:"Micro",small:"Small",medium:"Medium",large:"Large",unknown:"Not known"};
+const SIZE_RANK = {micro:1,small:2,medium:3,large:4,unknown:0};
+const NONLOCAL = new Set(["national_chain","online_ecommerce"]);
+const PART = {
+  proximity:          ["Distance from the ground", "closer scores higher"],
+  sector_propensity:  ["Sector", "how often this kind of business backs a club like us"],
+  company_stability:  ["Trading record", "years trading, accounts up to date"],
+  ability_to_pay:     ["Size", "rough budget, kept light on purpose"],
+  community_affinity: ["Local roots", "read from its own website"],
+  brand_fit:          ["Fit with a town club", "read from its own website"],
+  csr_signal:         ["Community support", "read from its own website"],
+};
+const SHORT_AP = {"Partner (not paid sponsor)":"Partner","Low priority":"Low priority"};
+const apKind = b => SHORT_AP[b.approach.kind] || b.approach.kind;
+const town = b => { const a = String(b.address||"").split(",").map(s=>s.trim()).filter(Boolean); return a.length ? a[a.length-1].replace(/\s+[A-Z]{1,2}\d[\dA-Z]?\s*\d[A-Z]{2}$/,"") : ""; };
+const KEYWORD = (DATA.soft_models||[]).some(m => /stub|keyword/i.test(m));
+
+/* ---------- the businesses ---------- */
+const BIZ = DATA.businesses.map(b => ({...b, score: LAB ? b.fit : b.local_fit,
+  townName: town(b), years: b.company_age || null, sizeRank: SIZE_RANK[b.size_band] ?? 0}));
+const SCORE_NAME = LAB ? "Fit score" : "Local fit";
+const topCut = (() => { const v = BIZ.map(b => b.score).sort((a,b)=>b-a); return v[Math.max(0, Math.ceil(v.length*.1)-1)] ?? 100; })();
+
+/* ---------- header, notices, KPIs ---------- */
+$("nav").innerHTML = (DATA.nav||[]).map(n => `<a href="${esc(n.href)}"${n.current ? ' aria-current="page"' : ""}>${esc(n.label)}</a>`).join("");
+$("asof").innerHTML = (LAB ? `<span class="labtag">Lab</span>&nbsp; ` : "") + (DATA.updated ? `Data to <b>${esc(niceDate(DATA.updated))}</b>` : "");
+const ICON = `<svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="8.5" width="2" height="6" fill="currentColor"/><rect x="9" y="5" width="2" height="2" fill="currentColor"/></svg>`;
+let notes = "";
+if (DATA.demo) notes += `<div class="notice demo" role="note">${ICON}<div><b>Demo data.</b> Every business on this page is invented to show how the tool works. Run the pipeline with the live APIs to see real businesses around ${esc(DATA.stadium)}.</div></div>`;
+if (LAB) notes += `<div class="notice lab" role="note">${ICON}<div><b>Prototype.</b> This page adds a reading of each business's own website (local roots, fit with a town club, community support) to the score. ${KEYWORD ? "The readings come from a keyword count, not real reading, so treat them as rough." : "The readings are made by an AI model from the website text and haven't been checked by a person."} The main page leaves them out.</div></div>`;
+notes += `<div class="notice" role="note">${ICON}<div><b>A ranking for deciding who to approach first.</b> It knows location, sector and company records. It can't see the owner, their budget or whether they already sponsor someone. Use it to plan calls, not to judge a business.</div></div>`;
+$("notices").innerHTML = notes;
+const within5 = BIZ.filter(b => b.distance_km != null && b.distance_km <= 5).length;
+$("kpis").innerHTML = [[BIZ.length,"businesses"],[within5,"within 5 km"],
+  [BIZ.filter(b => LIVE.has(b.status)).length,"in progress"],[BIZ.filter(b => b.status==="won").length,"won"]]
+  .map(([v,k]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("");
+$("foot").textContent = `Businesses from Google Places. Company records from Companies House.${LAB ? " Website readings from each business's own homepage." : ""} Scores are estimates calculated from those records. Sons Sponsors, built for Dumbarton FC.`;
+
+/* ---------- table head ---------- */
+const COLS = [
+  {k:"rk", th:"#", cls:"rkh", nosort:true},
+  {k:"name", th:"Business", cls:"l"},
+  {k:"distance_km", th:"Distance", cls:"hide-m", grp:"rec"},
+  {k:"years", th:"Trading", cls:"hide-m", grp:"rec"},
+  {k:"sizeRank", th:"Size", cls:"l hide-m", grp:"rec"},
+  ...(LAB ? [{k:"local_fit", th:"Records only", cls:"hide-m", grp:"fit"}] : []),
+  {k:"score", th: LAB ? "With website" : "Out of 100", cls:"l2c", grp:"fit"},
+  {k:"approach", th:"Approach", cls:"l hide-m"},
+  {k:"status", th:"Outreach", cls:"l"},
+];
+$("head").innerHTML = COLS.map(c => c.nosort ? `<th class="${c.cls}" data-col="${c.k}">${c.th}</th>`
+  : `<th class="${c.cls}" data-sort="${c.k}"><button type="button">${c.th}</button></th>`).join("");
+function fixGroups(){
+  const vis = c => { const th = document.querySelector(`#head th[data-sort="${c.k}"],#head th[data-col="${c.k}"]`); return th && getComputedStyle(th).display !== "none"; };
+  const spans = []; let cur = null;
+  COLS.forEach(c => { if (!vis(c)) return; const g = c.grp || "";
+    if (cur && cur.g === g) cur.n++; else { cur = {g, n:1}; spans.push(cur); } });
+  const LBL = {rec:"Business record", fit: SCORE_NAME};
+  $("grp").innerHTML = spans.map(s => `<th colspan="${s.n}" class="${s.g==="fit"?"l2":""}">${s.g ? LBL[s.g] : ""}</th>`).join("");
+}
+
+/* ---------- filters ---------- */
+const SECTORS = [...new Set(BIZ.map(b => b.sector))].sort((a,b) => BIZ.filter(x=>x.sector===b).length - BIZ.filter(x=>x.sector===a).length);
+const LABEL_OF = Object.fromEntries(BIZ.map(b => [b.sector, b.sector_label]));
+const DEF = {secs:null, dist:0, size:"", status:"", q:"", hideNonLocal:true, hideDormant:false, sort:"score", dir:-1};
+const S = {...DEF, secs: new Set(SECTORS)};
+$("secBox").innerHTML = SECTORS.map(s => `<label class="chk"><input type="checkbox" data-s="${esc(s)}" checked> ${esc(LABEL_OF[s])} <span class="c">${BIZ.filter(b=>b.sector===s).length}</span></label>`).join("");
+
+function syncControls(){
+  $("fDist").value = S.dist; $("fStatus").value = S.status; $("fSearch").value = S.q;
+  $("fLocal").checked = S.hideNonLocal; $("fDormant").checked = S.hideDormant;
+  document.querySelectorAll("#sizeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.size)));
+  document.querySelectorAll("#secBox input").forEach(i => i.checked = S.secs.has(i.dataset.s));
+}
+function visible(){
+  const q = S.q.trim().toLowerCase();
+  const minSize = S.size === "medium" ? 3 : S.size === "small" ? 2 : 0;
+  const list = BIZ.filter(b =>
+    S.secs.has(b.sector) &&
+    (!S.dist || (b.distance_km != null && b.distance_km <= S.dist)) &&
+    b.sizeRank >= minSize &&
+    (!S.status || (S.status === "live" ? LIVE.has(b.status) : b.status === S.status)) &&
+    (!S.hideNonLocal || !NONLOCAL.has(b.sector)) &&
+    (!S.hideDormant || !b.dormant) &&
+    (!q || (b.name||"").toLowerCase().includes(q) || (b.address||"").toLowerCase().includes(q)));
+  const key = {name: b => (b.name||"").toLowerCase(), sector_label: b => b.sector_label, approach: b => apKind(b),
+               status: b => ["in-talks","contacted","to-approach","won","new","dead"].indexOf(b.status)}[S.sort] || (b => b[S.sort] ?? -1);
+  return list.sort((a,b) => { const x = key(a), y = key(b);
+    return (x < y ? -1 : x > y ? 1 : 0) * S.dir || b.score - a.score; });
+}
+const SORTNAME = {name:"name", distance_km:"distance", sector_label:"sector", years:"years trading", sizeRank:"size",
+  local_fit:"Local fit (records only)", score: LAB ? "fit score with website" : "Local fit", approach:"approach", status:"outreach"};
+
+/* ---------- render ---------- */
+let LIST = [];
+const scoreCell = v => `<span class="score">${f0(v)}<i><s class="${v >= topCut ? "top" : ""}" style="width:${Math.max(2, v)}%"></s></i></span>`;
+function render(){
+  LIST = visible();
+  document.querySelectorAll("#head th[data-sort]").forEach(th =>
+    th.setAttribute("aria-sort", th.dataset.sort === S.sort ? (S.dir < 0 ? "descending" : "ascending") : "none"));
+  $("count").innerHTML = `${LIST.length} ${LIST.length === 1 ? "business" : "businesses"}<span>sorted by ${esc(SORTNAME[S.sort])}</span>`;
+  if (!LIST.length){
+    $("rows").innerHTML = `<tr><td colspan="${COLS.length}" class="empty" style="text-align:center">No businesses match these filters. <button class="linkbtn" type="button" onclick="resetAll()">Reset filters</button></td></tr>`;
+  } else {
+    $("rows").innerHTML = LIST.map((b,i) => `
+      <tr data-n="${b.n}" tabindex="0" aria-label="${esc(b.name)}, open profile">
+        <td class="rk">${i+1}</td>
+        <td class="l pl"><span class="nm">${esc(b.name)}</span>${b.warm_intro ? `<span class="warm">Warm path</span>` : ""}
+          <span class="cl">${esc(b.sector_label)}${b.townName ? " · " + esc(b.townName) : ""}</span>
+          <span class="mob">${km(b.distance_km)} · ${b.years ? b.years + " yrs trading · " : ""}${esc(SIZE[b.size_band]||"")} · ${esc(apKind(b))}</span>
+          ${b.flags.length ? `<span class="fl">Check: ${esc(b.flags.join("; "))}</span>` : ""}</td>
+        <td class="hide-m">${km(b.distance_km)}</td>
+        <td class="hide-m">${b.years ? b.years + " yrs" : '<span class="dim">–</span>'}</td>
+        <td class="l hide-m">${b.size_band && b.size_band !== "unknown" ? esc(SIZE[b.size_band]) : '<span class="dim">Not known</span>'}</td>
+        ${LAB ? `<td class="hide-m">${f0(b.local_fit)}</td>` : ""}
+        <td class="l2c main">${scoreCell(b.score)}</td>
+        <td class="l hide-m ap"><b>${esc(apKind(b))}</b></td>
+        <td class="l"><span class="st ${esc(b.status)}">${esc(STATUS[b.status] || b.status)}</span></td>
+      </tr>`).join("");
+  }
+  fixGroups();
+  if (!$("viewC").hidden) drawScatter();
+}
+$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;${LAB ? "Local fit plus the website readings, out of 100." : "distance, sector, trading record and size, weighted and scaled to 100."} Gold bar: top 10% of this list.</span><span><span class="warm" style="margin:0">Warm path</span>&nbsp;someone at the club already has a way in.</span>`;
+
+/* ---------- events ---------- */
+$("head").onclick = e => {
+  const th = e.target.closest("th[data-sort]"); if (!th) return;
+  const k = th.dataset.sort;
+  if (S.sort === k) S.dir = -S.dir; else { S.sort = k; S.dir = ["name","sector_label","approach","status","distance_km"].includes(k) ? 1 : -1; }
+  render();
+};
+$("secBox").onchange = e => { const s = e.target.dataset.s; if (!s) return;
+  e.target.checked ? S.secs.add(s) : S.secs.delete(s); render(); };
+$("secAll").onclick = () => { S.secs = new Set(SECTORS); syncControls(); render(); };
+$("secNone").onclick = () => { S.secs = new Set(); syncControls(); render(); };
+$("sizeSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.size = b.dataset.v; syncControls(); render(); };
+$("fDist").onchange   = e => { S.dist = +e.target.value; render(); };
+$("fStatus").onchange = e => { S.status = e.target.value; render(); };
+$("fSearch").oninput  = e => { S.q = e.target.value; render(); };
+$("fLocal").onchange  = e => { S.hideNonLocal = e.target.checked; render(); };
+$("fDormant").onchange= e => { S.hideDormant = e.target.checked; render(); };
+function resetAll(){ Object.assign(S, DEF, {secs: new Set(SECTORS), sort:S.sort, dir:S.dir}); syncControls(); render(); }
+$("reset").onclick = resetAll;
+$("openF").onclick = () => { $("filters").classList.add("open"); $("scrim").classList.add("open"); };
+$("closeF").onclick = closeFilters;
+function closeFilters(){ $("filters").classList.remove("open"); if (!$("drawer").classList.contains("open")) $("scrim").classList.remove("open"); }
+$("rows").onclick = e => { const r = e.target.closest("tr[data-n]"); if (r) openBiz(Number(r.dataset.n), r); };
+$("rows").onkeydown = e => { if (e.key === "Enter" || e.key === " "){ const r = e.target.closest("tr[data-n]"); if (r){ e.preventDefault(); openBiz(Number(r.dataset.n), r); } } };
+function setTab(chart){
+  $("tabT").setAttribute("aria-selected", String(!chart)); $("tabC").setAttribute("aria-selected", String(chart));
+  $("viewT").hidden = chart; $("viewC").hidden = !chart; if (chart) drawScatter();
+}
+$("tabT").onclick = () => setTab(false); $("tabC").onclick = () => setTab(true);
+window.addEventListener("resize", () => { fixGroups(); if (!$("viewC").hidden) drawScatter(); });
+
+$("download").onclick = () => {
+  const cols = ["Rank","Business","Sector","Address","Distance from ground (km)","Years trading","Size (Companies House)",
+    "Accounts dormant","Companies House number","Website", ...(LAB ? ["Local fit (records only)","Fit score (with website)"] : ["Local fit"]),
+    "Suggested approach","Approach detail","Warm path","Checks","Outreach status","Owner","Notes"];
+  const rows = LIST.map((b,i) => [i+1, b.name, b.sector_label, b.address, b.distance_km, b.years ?? "", SIZE[b.size_band] || "",
+    b.dormant ? "Yes" : "No", b.company_number || "", b.website || "", ...(LAB ? [f0(b.local_fit), f0(b.fit)] : [f0(b.local_fit)]),
+    apKind(b), b.approach.detail, b.warm_intro || "", b.flags.join("; "), STATUS[b.status] || b.status, b.owner || "", b.notes || ""]);
+  const csv = [cols, ...rows].map(r => r.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], {type:"text/csv"}));
+  a.download = LAB ? "dumbarton-sponsors-lab.csv" : "dumbarton-sponsors.csv"; document.body.appendChild(a); a.click(); a.remove();
+};
+
+/* ---------- chart: distance vs fit ---------- */
+function drawScatter(){
+  const wrap = $("chartwrap"), tip = $("tip");
+  const pts = LIST.filter(b => b.distance_km != null);
+  const W = Math.max(320, wrap.clientWidth - 32), H = Math.round(Math.min(560, Math.max(320, W * .56)));
+  const pad = {l:52, r:18, t:18, b:52};
+  const xmax = Math.max(4, ...pts.map(b => b.distance_km)) * 1.06;
+  const X = v => pad.l + (W - pad.l - pad.r) * v / xmax, Y = v => H - pad.b - (H - pad.t - pad.b) * v / 100;
+  const xs = xmax > 12 ? 2 : 1;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${SCORE_NAME} against distance from the ground for ${pts.length} businesses">`;
+  if (X(5) < W - pad.r) s += `<rect x="${pad.l}" y="${pad.t}" width="${X(5)-pad.l}" height="${H-pad.t-pad.b}" fill="#FFFCF0"/>`;
+  for (let v = 0; v <= xmax + 1e-9; v += xs) s += `<line x1="${X(v)}" x2="${X(v)}" y1="${pad.t}" y2="${H-pad.b}" stroke="#EDEFF1"/><text x="${X(v)}" y="${H-pad.b+18}" font-size="12.5" text-anchor="middle" fill="#5B636B">${v}</text>`;
+  for (let v = 0; v <= 100; v += 20) s += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#EDEFF1"/><text x="${pad.l-8}" y="${Y(v)+4}" font-size="12.5" text-anchor="end" fill="#5B636B">${v}</text>`;
+  s += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${H-pad.b}" y2="${H-pad.b}" stroke="#9AA2A9"/><line x1="${pad.l}" x2="${pad.l}" y1="${pad.t}" y2="${H-pad.b}" stroke="#9AA2A9"/>`;
+  if (X(5) < W - pad.r) s += `<line x1="${X(5)}" x2="${X(5)}" y1="${pad.t}" y2="${H-pad.b}" stroke="#B38600" stroke-dasharray="5 4" stroke-width="1.5"/><text x="${X(5)-6}" y="${pad.t+12}" font-size="12.5" fill="#7A5C00" font-weight="700" text-anchor="end">Within 5 km</text>`;
+  const med = median(BIZ.map(b => b.score));
+  if (med != null) s += `<line x1="${pad.l}" x2="${W-pad.r}" y1="${Y(med)}" y2="${Y(med)}" stroke="#B38600" stroke-dasharray="5 4" stroke-width="1.5"/><text x="${W-pad.r-4}" y="${Y(med)-6}" font-size="12.5" fill="#7A5C00" font-weight="700" text-anchor="end">Middle of the list</text>`;
+  s += `<text x="${pad.l + (W-pad.l-pad.r)/2}" y="${H-10}" font-size="13.5" text-anchor="middle" fill="#22272B" font-weight="700">Distance from the ground, km →</text>`;
+  s += `<text transform="translate(15 ${pad.t + (H-pad.t-pad.b)/2}) rotate(-90)" font-size="13.5" text-anchor="middle" fill="#22272B" font-weight="700">${SCORE_NAME}, out of 100 →</text>`;
+  const ranked = [...pts].sort((a,b) => b.score - a.score).slice(0, 8);
+  const rankOf = Object.fromEntries(ranked.map((b,i) => [b.n, i+1]));
+  // grey dots first, then the numbered badges on top; a badge that would cover
+  // another is nudged aside with a short leader line back to its true position
+  pts.filter(b => !rankOf[b.n]).forEach(b => {
+    const cx = X(b.distance_km), cy = Y(b.score);
+    s += `<g class="dotp" data-n="${b.n}" tabindex="0" role="button" aria-label="${esc(b.name)}"><circle cx="${cx}" cy="${cy}" r="12" fill="transparent"/><circle cx="${cx}" cy="${cy}" r="5" fill="#1F2428" fill-opacity=".62" stroke="#fff" stroke-width="1"/></g>`;
+  });
+  const placed = [], OFF = [[0,0],[20,-6],[-20,-6],[0,-21],[0,21],[22,14],[-22,14],[24,-24],[-24,-24]];
+  ranked.forEach((b, i) => {
+    const tx = X(b.distance_km), ty = Y(b.score);
+    let [bx, by] = [tx, ty];
+    for (const [dx, dy] of OFF){ const x = tx + dx, y = ty + dy;
+      if (x > pad.l + 9 && x < W - pad.r - 9 && y > pad.t + 9 && !placed.some(p => Math.hypot(p[0]-x, p[1]-y) < 20)){ bx = x; by = y; break; } }
+    placed.push([bx, by]);
+    const moved = bx !== tx || by !== ty;
+    s += `<g class="dotp" data-n="${b.n}" tabindex="0" role="button" aria-label="${i+1}: ${esc(b.name)}"><circle cx="${bx}" cy="${by}" r="13" fill="transparent"/>`
+      + (moved ? `<line x1="${tx}" y1="${ty}" x2="${bx}" y2="${by}" stroke="#1F2428" stroke-width="1.2"/><circle cx="${tx}" cy="${ty}" r="2.5" fill="#1F2428"/>` : "")
+      + `<circle cx="${bx}" cy="${by}" r="9.5" fill="#F5B800" stroke="#1F2428" stroke-width="1.5"/><text x="${bx}" y="${by+4.2}" font-size="11.5" font-weight="700" text-anchor="middle" fill="#1F2428" pointer-events="none">${i+1}</text></g>`;
+  });
+  s += `</svg>`;
+  wrap.innerHTML = s; wrap.appendChild(tip);
+  const byN = Object.fromEntries(pts.map(b => [b.n, b]));
+  wrap.querySelectorAll(".dotp").forEach(g => {
+    const show = () => { const b = byN[g.dataset.n]; if (!b) return;
+      tip.innerHTML = `<b>${esc(b.name)}</b><span class="t2">${esc(b.sector_label)}${b.townName ? " · " + esc(b.townName) : ""}</span><br>${SCORE_NAME} ${f0(b.score)} · ${km(b.distance_km)} away<br><span class="t2">${esc(STATUS[b.status] || b.status)}</span>`;
+      const r = wrap.getBoundingClientRect(), c = g.getBoundingClientRect();
+      let x = c.left - r.left + c.width/2 + 12, y = c.top - r.top - 10;
+      tip.style.opacity = 1; const tw = tip.offsetWidth; if (x + tw > r.width - 8) x = c.left - r.left - tw - 6;
+      tip.style.left = x + "px"; tip.style.top = Math.max(4, y - tip.offsetHeight/2 + 10) + "px"; };
+    g.addEventListener("mouseenter", show); g.addEventListener("focus", show);
+    g.addEventListener("mouseleave", () => tip.style.opacity = 0); g.addEventListener("blur", () => tip.style.opacity = 0);
+    g.addEventListener("click", () => openBiz(Number(g.dataset.n), g));
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openBiz(Number(g.dataset.n), g); } });
+  });
+  $("chartnote").innerHTML = `<span style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:8px;color:var(--text)">${ranked.map((b,i) => `<span><b style="display:inline-block;min-width:20px;height:20px;line-height:20px;border-radius:50%;background:#F5B800;box-shadow:inset 0 0 0 1.5px #1F2428;text-align:center;font-size:12px;margin-right:5px">${i+1}</b>${esc(b.name)}</span>`).join("")}</span>`
+    + `${pts.length} businesses from the current filters. Higher means a better fit, further left means closer to ${esc(DATA.stadium)}; the shaded band is within 5 km. The eight best fits are numbered. Select a dot to open the profile.`;
+}
+
+/* ---------- method text ---------- */
+(() => {
+  const W = DATA.weights, hard = ["proximity","sector_propensity","company_stability","ability_to_pay"];
+  const hardTot = hard.reduce((a,k) => a + W[k], 0);
+  $("mTitle").textContent = LAB ? 'What the scores mean' : 'What "Local fit" means';
+  $("mBody").innerHTML = `<p>Each business is scored on four things it's on record for: <strong>how close it is to the ground, what kind of business it is, how long it has been trading, and its size</strong>. Each gets a share of the points, weighted so that being local counts for most and size for least, and the total is scaled to 100.</p>`
+    + (LAB ? `<p><strong>Fit score</strong>, on this page only, also counts three readings of the business's own website: its local roots, how well backing a town club suits it, and any sign of community support. These carry ${100 - hardTot} of the 100 points. Where a website is thin or missing, the reading is held at the middle so it can't help or hurt.</p>` : "")
+    + `<p>The suggested approach comes from the sector alone: trade businesses tend to want the programme and the website, shops and pubs want to be seen on matchday.</p>`;
+  const ex = [...BIZ].sort((a,b) => b.local_fit - a.local_fit)[0];
+  if (ex){
+    const p = ex.parts, pts = hard.reduce((a,k) => a + p[k].points, 0);
+    $("example").innerHTML = `<b>Example.</b> ${esc(ex.name)}, ${km(ex.distance_km)} away: distance ${p.proximity.points.toFixed(1)} of ${W.proximity} + sector ${p.sector_propensity.points.toFixed(1)} of ${W.sector_propensity} + trading ${p.company_stability.points.toFixed(1)} of ${W.company_stability} + size ${p.ability_to_pay.points.toFixed(1)} of ${W.ability_to_pay} = ${pts.toFixed(1)} of ${hardTot}, so a Local fit of <b>${f0(ex.local_fit)}</b>.`;
+  }
+  const keys = Object.keys(W).sort((a,b) => W[b] - W[a]), max = Math.max(...keys.map(k => W[k]));
+  const scale = LAB ? 100 : hardTot;
+  $("weightBars").innerHTML = keys.map(k => `
+    <div class="lg${k === "proximity" ? " base" : ""}${hard.includes(k) ? "" : " soft"}"><span>${esc(PART[k][0])}</span>
+      <span class="tr"><i style="width:${(W[k]/max*100).toFixed(1)}%"></i></span>
+      <span class="v">${Math.round(W[k]/scale*100)}%</span></div>`).join("")
+    + `<p class="hint" style="margin-top:10px">Share of the ${LAB ? "Fit score" : "Local fit"}.${LAB ? " Striped: read from the website, prototype only." : ""}</p>`;
+  const secs = [...DATA.sectors].sort((a,b) => b.propensity - a.propensity);
+  $("sectorBars").innerHTML = secs.map(s => `
+    <div class="lg${s.propensity >= .85 ? " base" : ""}"><span>${esc(s.label)}</span>
+      <span class="tr"><i style="width:${(s.propensity*100).toFixed(1)}%"></i><s style="left:50%"></s></span>
+      <span class="v">${s.propensity.toFixed(2)}</span></div>`).join("");
+})();
+
+/* ---------- business profile ---------- */
+let lastFocus = null;
+function pbar(k, part, soft){
+  const frac = part.weight ? part.points / part.weight : 0;
+  return `<div class="pb"><span class="k">${esc(PART[k][0])}<small>${esc(PART[k][1])}</small></span>
+    <span class="bar"><i class="${soft ? "soft" : frac >= .85 ? "top" : ""}" style="width:${Math.max(2, frac*100)}%"></i></span>
+    <span class="pv">${part.points.toFixed(1)} <small>of ${part.weight}</small></span></div>`;
+}
+function openBiz(n, from){
+  const b = BIZ.find(x => x.n === n); if (!b) return;
+  lastFocus = from || document.activeElement;
+  const hard = ["proximity","sector_propensity","company_stability","ability_to_pay"];
+  const accounts = b.dormant ? "Dormant" : b.company_number ? "Filed" : "–";
+  const site = b.website && !/example\.com/.test(b.website) ? `<a href="${esc(b.website)}" target="_blank" rel="noopener">website</a>` : "";
+  $("drawer").innerHTML = `
+    <div class="d-top">
+      <button class="x" type="button" id="dClose">Close</button>
+      <div class="pos">${esc(b.sector_label)}</div>
+      <h2 id="dName">${esc(b.name)}</h2>
+      <div class="club">${esc(b.address || "Address not listed")}${site ? " · " + site : ""}</div>
+      <div class="tags">
+        <span><b>${km(b.distance_km)}</b> from the ground</span>
+        ${b.years ? `<span>Trading <b>${b.years} yrs</b></span>` : ""}
+        <span>Size: <b>${esc(SIZE[b.size_band] || "Not known")}</b></span>
+        ${b.warm_intro ? `<span class="hl">Warm path: <b>${esc(b.warm_intro)}</b></span>` : ""}
+        <span class="${LIVE.has(b.status) || b.status === "won" ? "hl" : ""}">Outreach: <b>${esc(STATUS[b.status] || b.status)}</b></span>
+      </div>
+    </div>
+    <div class="d-body">
+      <section class="dcard">
+        <h3>${SCORE_NAME}</h3>
+        <p class="sub">${LAB ? "Local fit plus the website readings, out of 100." : "Distance, sector, trading record and size, weighted and scaled to 100."}</p>
+        <div class="hero">
+          <div class="key"><b>${f0(b.score)}<small> /100</small></b><span>${SCORE_NAME}</span></div>
+          ${LAB ? `<div><b>${f0(b.local_fit)}</b><span>Records only</span></div>` : `<div><b>${km(b.distance_km).replace(" km","")}<small> km</small></b><span>From the ground</span></div>`}
+          <div><b>${BIZ.filter(x => x.score > b.score).length + 1}<small> of ${BIZ.length}</small></b><span>Place on the full list</span></div>
+        </div>
+      </section>
+      <section class="dcard">
+        <h3>Where the points come from</h3>
+        <p class="sub">Points earned out of the points available for each part.</p>
+        ${hard.map(k => pbar(k, b.parts[k], false)).join("")}
+        ${LAB && b.soft_parts ? Object.keys(b.soft_parts).map(k => pbar(k, b.soft_parts[k], true)).join("") : ""}
+      </section>
+      <section class="dcard">
+        <h3>Suggested approach: ${esc(apKind(b))}</h3>
+        <p class="sub" style="margin:0">${esc(b.approach.detail || "Classify the sector first, then decide what to offer.")}</p>
+        ${b.flags.map(f => `<div class="callout warn"><b>Check first</b>${esc(f.charAt(0).toUpperCase() + f.slice(1))}.</div>`).join("")}
+        ${b.warm_intro ? `<div class="callout"><b>Warm path</b>${esc(b.warm_intro)}. Start here rather than a cold approach.</div>` : ""}
+      </section>
+      <section class="dcard">
+        <h3>Company record</h3>
+        <p class="sub">${b.company_number ? "From Companies House, matched on the business name." : "No Companies House record linked to this business."}</p>
+        <div class="facts">
+          <div><b>${esc(b.company_number || "–")}</b><span>Company number</span></div>
+          <div><b>${b.years ? b.years + " yrs" : "–"}</b><span>Trading</span></div>
+          <div><b>${esc(SIZE[b.size_band] || "Not known")}</b><span>Accounts size</span></div>
+          <div><b>${esc(accounts)}</b><span>Accounts</span></div>
+        </div>
+        ${b.ch_flag ? `<div class="callout warn"><b>Match not certain</b>${esc(b.ch_flag.charAt(0).toUpperCase() + b.ch_flag.slice(1))}. The record above may belong to a different company, or there may be none (sole traders aren't listed).</div>` : ""}
+      </section>
+      ${LAB ? softCard(b) : ""}
+      <section class="dcard">
+        <h3>Outreach</h3>
+        <p class="sub">Kept by club staff and carried over every time the list is refreshed.</p>
+        <div class="facts" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+          <div><b>${esc(STATUS[b.status] || b.status)}</b><span>Status</span></div>
+          <div><b>${esc(b.owner || "–")}</b><span>Owner</span></div>
+          <div><b>${b.status_at ? esc(niceDate(b.status_at)) : "–"}</b><span>Last updated</span></div>
+        </div>
+        ${b.notes ? `<div class="callout"><b>Note</b>${esc(b.notes)}</div>` : ""}
+      </section>
+      <p class="caveat">A ranking from public records. Check the business is still trading and find the right person before you call.</p>
+    </div>`;
+  $("drawer").classList.add("open"); $("scrim").classList.add("open");
+  $("drawer").setAttribute("aria-hidden","false"); document.body.style.overflow = "hidden";
+  $("drawer").scrollTop = 0;
+  $("dClose").onclick = closeBiz; $("dClose").focus();
+  history.replaceState(null, "", `#business-${n}`);
+}
+function softCard(b){
+  const s = b.soft || {};
+  const rows = ["community_affinity","brand_fit","csr_signal"].filter(k => s[k]).map(k => {
+    const r = s[k];
+    return `<div class="reading"><div class="top"><span class="k" style="font-weight:700">${esc(PART[k][0])}</span>
+      <span class="bar" style="height:12px;background:#EEF0F2;border-radius:2px;position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:${Math.max(2, r.value*100)}%;background:var(--ink);opacity:${(.35 + .65*r.confidence).toFixed(2)};border-radius:0 3px 3px 0"></i></span>
+      <span class="pv" style="text-align:right;font-weight:700">${r.value.toFixed(2)} <span class="conf">· ${Math.round(r.confidence*100)}% sure</span></span></div>
+      <q>${esc(r.justification)}</q></div>`;
+  }).join("");
+  const model = Object.values(s)[0]?.model || "";
+  return `<section class="dcard proto"><h3>Website reading <span class="labtag" style="margin-left:6px">Prototype</span></h3>
+    <p class="sub">${/stub|keyword/i.test(model) ? "A keyword count of the homepage text, not a real reading. Rough." : "Read by an AI model from the homepage text. Not checked by a person."} Low certainty pulls a reading towards the middle before it's scored.</p>
+    ${rows || '<p class="sub" style="margin:0">No website text found, so all three readings sit at the middle.</p>'}</section>`;
+}
+function closeBiz(){
+  $("drawer").classList.remove("open"); if (!$("filters").classList.contains("open")) $("scrim").classList.remove("open");
+  $("drawer").setAttribute("aria-hidden","true"); document.body.style.overflow = "";
+  history.replaceState(null, "", location.pathname + location.search);
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+$("scrim").onclick = () => { if ($("drawer").classList.contains("open")) closeBiz(); else closeFilters(); };
+document.addEventListener("keydown", e => {
+  const open = $("drawer").classList.contains("open");
+  if (e.key === "Escape"){ if (open) closeBiz(); else if ($("filters").classList.contains("open")) closeFilters(); }
+  if (e.key === "Tab" && open){
+    const f = $("drawer").querySelectorAll("button,[href],input,select,[tabindex]:not([tabindex='-1'])");
+    if (!f.length) return; const a = f[0], z = f[f.length-1];
+    if (e.shiftKey && document.activeElement === a){ z.focus(); e.preventDefault(); }
+    else if (!e.shiftKey && document.activeElement === z){ a.focus(); e.preventDefault(); }
+  }
+});
+
+syncControls();
+render();
+const m = location.hash.match(/^#business-(\d+)$/); if (m) openBiz(Number(m[1]));
+</script>
+</body>
+</html>

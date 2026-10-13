@@ -236,6 +236,7 @@ def enrich(rec: dict, mode="stub", **kw) -> dict:
         "csr_signal":         derived["csr_signal"]["value"],
         "csr_conf":           derived["csr_signal"]["confidence"],
         "_soft_justif":       {f: derived[f]["justification"] for f in FEATURES},
+        "_soft_derived":      derived,   # full {feature:{value,confidence,justification}}
     })
     return flat
 

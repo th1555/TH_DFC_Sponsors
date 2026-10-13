@@ -1,4 +1,4 @@
-# Dumbarton FC — Sponsor Intelligence Tool
+# Sons Sponsors · Dumbarton FC sponsor intelligence
 
 A human-in-the-loop tool that ranks local businesses by how well they fit as
 sponsors for **Dumbarton FC**, a Scottish League Two club. It sells the club's
@@ -34,10 +34,13 @@ queue the club works top-down. The tool proposes; a person owns every contact.
                        WALLED human table (outreach_status) a re-score can't touch
         │
         ▼
-  sponsor_app.py       Streamlit action queue — ranked, auditable, status-editable
+  export_sponsor_site.py   the club website: one static page in the Sons
+                           Scouting design, plus a lab page for the prototype parts
 ```
 
-`sponsor_pipeline.py` runs the whole chain and builds `sponsor.db`.
+`sponsor_pipeline.py` runs the whole chain and builds `sponsor.db`. `outreach.py`
+records who has been approached. `sponsor_app.py` (Streamlit) is kept as a local
+working view; the club-facing front end is the website.
 
 ## Design principles
 
@@ -57,8 +60,38 @@ queue the club works top-down. The tool proposes; a person owns every contact.
 python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-python sponsor_pipeline.py        # build sponsor.db (offline, synthetic data)
-streamlit run sponsor_app.py      # open the action queue
+python sponsor_pipeline.py        # build sponsor.db (offline, demo businesses)
+python export_sponsor_site.py     # write site/index.html and site/lab.html
+```
+
+Open `site/index.html` in a browser. Demo data is labelled as such on the page.
+
+## The club website
+
+Same design, structure and conventions as Sons Scouting, so the two read as one
+product: the ranked list with filters, a table and a "map of fit" chart, CSV
+download, and a profile for each business showing where its points come from.
+
+It follows the same **shipped / lab split**:
+
+- **`site/index.html` (shipped)** shows recorded facts only (distance, sector,
+  company record) and the **Local fit** built from them: distance, sector,
+  trading record and size, scaled to 100.
+- **`site/lab.html` (prototype)** adds the website readings (local roots, fit
+  with a town club, community support) and the **Fit score** that includes them.
+  Same login, not linked from the main page. The readings are judgments, and on
+  the keyword proxy they are rough, so they stay off the page the club relies on.
+
+## Recording outreach
+
+The website is static, so status isn't edited in the browser. It lives in the
+walled `outreach_status` table and is changed with `outreach.py`; a pipeline
+refresh never touches it.
+
+```bash
+python outreach.py set "Rockside Coaches" contacted --owner Tom --note "Emailed 14 Oct"
+python outreach.py list
+python export_sponsor_site.py     # publish the change
 ```
 
 Real LLM soft-feature derivation (optional):
@@ -68,26 +101,45 @@ export ANTHROPIC_API_KEY=…        # never commit this
 python sponsor_pipeline.py --llm
 ```
 
-## Going from demo to real data
+## Real data
 
-The pipeline ships on **synthetic businesses with realistic website copy** so the
-whole thing runs offline. Two clean seams swap in real data with no change to the
-scoring or storage logic:
+The pipeline runs on **synthetic businesses** by default (fully offline), and on
+**real businesses** with `--real`. The real-data layer is built:
 
-- **Google Places** → business name, sector, location (distance to the ground).
-- **Companies House (free API)** → company age, size band, accounts status.
-- Fetch each candidate's homepage text → feed `soft_features.py` in `--llm` mode.
+- **`ingest_places.py`** — Google Places Text Search discovers candidate
+  businesses near the ground and computes distance (Haversine).
+- **`ingest_companies_house.py`** — the free Companies House API enriches each by
+  name → sector, age, size band, accounts/dormant status. Fuzzy name matches that
+  don't clear a confidence floor are **flagged, not guessed**.
+- **`sic_sectors.py`** — maps raw UK SIC 2007 codes to the 13-sector taxonomy
+  (the keystone that makes Companies House legible to the scorer).
+- **`fetch_website.py`** — pulls each homepage's text for the soft-feature layer.
 
-`sponsor_scoring.score_business()` scores a real enriched record identically to a
-synthetic one — that's the seam.
+Every client has an offline **fixture** mode (so the whole `--real` path runs with
+no keys) and a live **API** mode. Because these are official APIs, they don't block
+datacenter IPs — the real ingestion can run anywhere, not just locally.
+
+```bash
+python sponsor_pipeline.py --real                   # real businesses, offline fixtures
+python sponsor_pipeline.py --real --api --llm       # fully live (needs 3 keys below)
+```
+
+Live keys (never commit them): `GOOGLE_PLACES_API_KEY`, `COMPANIES_HOUSE_API_KEY`,
+`ANTHROPIC_API_KEY`. `sponsor_scoring.score_business()` scores a real enriched
+record identically to a synthetic one — that's the seam.
 
 ## Deploying
 
-The app is fine on **Streamlit Cloud**: if `sponsor.db` is absent it builds a
-clearly-labelled demo store, so the public demo works with no database in the
-repo. Because Cloud's filesystem is ephemeral, status edits there won't persist
-across restarts — point `DUMBARTON_SPONSOR_DB` at a hosted DB (e.g. Supabase /
-Postgres) when durable, multi-user editing matters.
+Deploy `site/` exactly like Sons Scouting: a Cloudflare Worker serving the folder,
+behind Cloudflare Access email login. The simplest route is to drop the pages into
+the Sons Scouting site so one login covers both, with a header link back:
+
+```bash
+python export_sponsor_site.py --out ../TH_DFC/site/sponsors --scouting-link ../
+```
+
+Then commit and push TH_DFC as usual. The pages contain outreach notes, so keep
+whichever repo holds `site/` private. `sponsor.db` itself is never committed.
 
 ## Roadmap
 
@@ -102,11 +154,18 @@ Postgres) when durable, multi-user editing matters.
 
 | File | Role |
 |------|------|
-| `sponsor_config.yaml` | Weights, sector table, tier map — all tuning, no code changes |
+| `sponsor_config.yaml` | Weights, sector table, tier map, ingest settings — all tuning |
 | `sponsor_scoring.py` | Deterministic scoring core |
 | `soft_features.py` | The bounded LLM layer (prompt + API + offline stub) |
+| `sic_sectors.py` | SIC-code → sector mapping (makes Companies House legible) |
+| `ingest_places.py` | Google Places candidate discovery (+ offline fixture) |
+| `ingest_companies_house.py` | Companies House enrichment (+ offline fixture) |
+| `fetch_website.py` | Homepage text fetch for the soft-feature layer |
 | `sponsor_db.py` | SQLite store with the walled human layer |
 | `sponsor_pipeline.py` | Orchestrator — builds `sponsor.db` end to end |
-| `sponsor_app.py` | Streamlit action-queue UI |
+| `sponsor_site.html` | The website design (data is injected at export) |
+| `export_sponsor_site.py` | Builds `site/index.html` (shipped) and `site/lab.html` (prototype) |
+| `outreach.py` | Records outreach status and notes (the walled human table) |
+| `sponsor_app.py` | Streamlit working view, local use |
 
 *A decision-support prototype. It ranks and prepares; the club decides.*

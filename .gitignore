@@ -20,3 +20,9 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# --- generated website ------------------------------------------------------
+# export_sponsor_site.py writes site/ and the pages include outreach notes.
+# This repo is public: deploy site/ privately (Cloudflare Access), never commit it.
+site/
+sons_sponsors_site.zip

@@ -17,6 +17,19 @@ We **add** here (rather than multiply) because a sponsorship is a bundle of pros
 
 ---
 
+## Two scores: Local fit and Fit score
+
+The club website shows **Local fit** on its main page. It uses only the four
+things on record (distance, sector, trading record and size), with their points
+scaled up to 100. Nothing in it is a judgment about the business.
+
+**Fit score** adds the three website readings described below, and it appears
+only on the lab page. The readings are useful but they are judgments, and until
+the AI reading is switched on they come from a rough keyword count, so they stay
+off the page the club relies on. Everything below explains both.
+
+---
+
 ## The big idea: affinity beats reach
 
 Dumbarton averages a few hundred through the gate. The club's asset isn't *reach* — it's **local affinity**: the pull of a business being seen to back its own town's team. So the points are deliberately stacked that way:

@@ -78,3 +78,34 @@ tier_map:
   national_chain:               "Low priority — decisions likely not local"
   online_ecommerce:             "Low priority — no local-visibility motive"
   unknown:                      "Review — classify sector first"
+
+# --- data ingestion (the real-data layer) ------------------------------------
+# Official APIs, so unlike the recruitment scrapers these don't block cloud IPs.
+ingest:
+  stadium:                   # Dumbarton FC — C&G Systems Stadium ("The Rock")
+    name: "C&G Systems Stadium"
+    lat: 55.9369
+    lng: -4.5583
+  places:
+    radius_m: 8000           # candidate search radius around the ground
+    max_per_query: 20
+    seed_queries:            # one per local sector we prospect (location-biased)
+      - "coach hire"
+      - "haulage"
+      - "builders"
+      - "joiner"
+      - "pub"
+      - "car dealership"
+      - "garage MOT"
+      - "accountant"
+      - "solicitor"
+      - "estate agent"
+      - "funeral director"
+      - "takeaway"
+      - "restaurant"
+      - "plumber heating"
+      - "physiotherapy"
+      - "dental practice"
+      - "hardware shop"
+  companies_house:
+    match_min_score: 0.60    # name-similarity floor to accept a CH match (else flag)

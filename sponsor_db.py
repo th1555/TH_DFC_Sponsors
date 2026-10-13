@@ -20,13 +20,16 @@ The score table is disposable (delete + rebuild); the human table is sacred.
 That asymmetry is the design.
 """
 from __future__ import annotations
+import os
 import re
 import json
 import sqlite3
 from datetime import datetime, timezone
 import pandas as pd
 
-DB_PATH = "sponsor.db"
+# Same env var the app reads, so pipeline + app agree on one file. In Colab, set
+# it to a Google Drive path to persist the store (and the human notes) across runs.
+DB_PATH = os.environ.get("DUMBARTON_SPONSOR_DB", "sponsor.db")
 STATUSES = ("new", "to-approach", "contacted", "in-talks", "won", "dead")
 
 
@@ -71,8 +74,18 @@ CREATE TABLE IF NOT EXISTS outreach_status (
 """
 
 
+# Facts added after v1. ALTER TABLE keeps an existing store (and its human
+# notes) intact instead of forcing a rebuild.
+EXTRA_BUSINESS_COLS = {"company_number": "TEXT", "website": "TEXT",
+                       "address": "TEXT", "postcode": "TEXT", "ch_flag": "TEXT"}
+
+
 def init_db(conn):
     conn.executescript(SCHEMA)
+    have = {r[1] for r in conn.execute("PRAGMA table_info(businesses)")}
+    for col, typ in EXTRA_BUSINESS_COLS.items():
+        if col not in have:
+            conn.execute(f"ALTER TABLE businesses ADD COLUMN {col} {typ}")
     conn.commit()
 
 
@@ -80,21 +93,20 @@ def init_db(conn):
 # PIPELINE WRITERS  (facts + derivations + scores — never touch outreach_status)
 # ---------------------------------------------------------------------------
 def upsert_businesses(conn, records):
+    cols = ["business_id", "name", "sector", "distance_km", "company_age", "size_band",
+            "accounts_dormant", "website_text", "warm_intro", "source", "fetched_at",
+            "company_number", "website", "address", "postcode", "ch_flag"]
     rows = [(r["business_id"], r.get("name"), r.get("sector"),
              float(r.get("distance_km", 0) or 0), int(r.get("company_age", 0) or 0),
              r.get("size_band"), int(bool(r.get("accounts_dormant"))),
              r.get("website_text"), r.get("warm_intro"),
-             r.get("source", "synthetic"), now()) for r in records]
+             r.get("source", "synthetic"), now(),
+             r.get("company_number"), r.get("website"), r.get("address"),
+             r.get("postcode"), r.get("ch_flag")) for r in records]
+    updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c != "business_id")
     conn.executemany(
-        "INSERT INTO businesses (business_id,name,sector,distance_km,company_age,"
-        "size_band,accounts_dormant,website_text,warm_intro,source,fetched_at) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?) "
-        "ON CONFLICT(business_id) DO UPDATE SET name=excluded.name, "
-        "sector=excluded.sector, distance_km=excluded.distance_km, "
-        "company_age=excluded.company_age, size_band=excluded.size_band, "
-        "accounts_dormant=excluded.accounts_dormant, "
-        "website_text=excluded.website_text, warm_intro=excluded.warm_intro, "
-        "fetched_at=excluded.fetched_at", rows)
+        f"INSERT INTO businesses ({','.join(cols)}) VALUES ({','.join('?' * len(cols))}) "
+        f"ON CONFLICT(business_id) DO UPDATE SET {updates}", rows)
     conn.commit()
 
 
