@@ -128,6 +128,58 @@ def make_candidates(n_random=26):
     return cands
 
 
+def _norm_name(n):
+    import re
+    n = re.sub(r"\b(ltd|limited|plc|llp|the|co)\b", "", str(n or "").lower())
+    return re.sub(r"[^a-z0-9]+", " ", n).strip()
+
+
+def dedupe_candidates(cands):
+    """Real data produces collisions the fixtures never did:
+      * two Places locations matched to the SAME Companies House company
+        (branches of one firm, or a fuzzy match pinning two names on one company)
+      * two places with exactly the same name and no company match
+    Each business needs one row, so per business key:
+      - keep the best Companies House match (highest score, then closest),
+      - drop extra branches of the SAME business (same name),
+      - keep a DIFFERENT business that collided, but strip the shared company
+        record and flag it, rather than guess which one the record belongs to.
+    Returns (unique candidates, number of duplicate branches dropped)."""
+    import sponsor_db as _db
+    for c in cands:
+        c["business_id"] = _db.business_key(c)
+    groups = {}
+    for c in cands:
+        groups.setdefault(c["business_id"], []).append(c)
+
+    out, dropped = [], 0
+    for key, grp in groups.items():
+        grp.sort(key=lambda c: (-(c.get("ch_match_score") or 0), c.get("distance_km") or 99))
+        keep = grp[0]
+        out.append(keep)
+        for other in grp[1:]:
+            if _norm_name(other["name"]) == _norm_name(keep["name"]):
+                dropped += 1                      # another branch of the same business
+                continue
+            other.update(company_number=None, sector="unknown", company_age=0,
+                         size_band="unknown", accounts_dormant=False, postcode=None,
+                         ch_flag=f"matched the same Companies House company as "
+                                 f"{keep['name']} — no record linked, verify")
+            other["business_id"] = _db.business_key(other)
+            out.append(other)
+
+    # last line of defence: every id unique, whatever the data throws up
+    seen = {}
+    for c in out:
+        bid = c["business_id"]
+        if bid in seen:
+            seen[bid] += 1
+            c["business_id"] = f"{bid}-{seen[bid]}"
+        else:
+            seen[bid] = 1
+    return out, dropped
+
+
 def ingest_real(cfg, ingest_mode="fixture"):
     """The real-data path: discover businesses near the ground (Places), enrich
     each via Companies House, fetch its homepage text. Returns records in the
@@ -135,7 +187,9 @@ def ingest_real(cfg, ingest_mode="fixture"):
     identical. ingest_mode='api' uses the live APIs (needs the three keys)."""
     web_mode = "http" if ingest_mode == "api" else "fixture"
     cands = []
-    for p in places.discover(cfg, mode=ingest_mode):
+    found = places.discover(cfg, mode=ingest_mode)
+    print(f"  Places: {len(found)} businesses found near the ground; looking each up on Companies House...")
+    for p in found:
         facts = ch.enrich(p["name"], cfg, mode=ingest_mode)
         cands.append(dict(
             name=p["name"], sector=facts["sector"],
@@ -146,8 +200,12 @@ def ingest_real(cfg, ingest_mode="fixture"):
             warm_intro=None,
             source="places+companies_house" if ingest_mode == "api" else "fixture",
             company_number=facts.get("company_number"), ch_flag=facts.get("ch_flag"),
+            ch_match_score=facts.get("ch_match_score"),
             website=p.get("website"), address=p.get("address"),
             postcode=facts.get("postcode")))
+    cands, dropped = dedupe_candidates(cands)
+    if dropped:
+        print(f"  merged {dropped} duplicate branch(es) of the same business")
     return cands
 
 
@@ -159,7 +217,7 @@ def run(mode="stub", source="synthetic", ingest_mode="fixture"):
     cands = ingest_real(cfg, ingest_mode) if source == "real" else make_candidates()
     biz_records, score_rows = [], []
     for rec in cands:
-        rec["business_id"] = db.business_key(rec)
+        rec["business_id"] = rec.get("business_id") or db.business_key(rec)
         flat = sf.enrich(rec, mode=mode)                     # step 2
         r = ss.score_business(flat, cfg)                     # step 1
         top = max(r["contrib"], key=r["contrib"].get)
