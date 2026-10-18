@@ -66,7 +66,13 @@ def f_sector(sector, cfg):
     return float(tbl.get(sector, tbl["unknown"]))
 
 
-def f_stability(age_years, dormant, cfg):
+def f_stability(age_years, dormant, cfg, known=True):
+    # No confirmed company record (sole trader, partnership, or a match we
+    # refused): we don't know the age, so score it neutral rather than as a
+    # brand-new firm. Same rule as the soft features: missing data neither
+    # helps nor hurts.
+    if not known:
+        return cfg["soft_features"]["neutral"]
     s = 1.0 - math.exp(-max(0.0, age_years) / cfg["stability"]["age_scale_years"])
     if dormant:
         s *= cfg["stability"]["dormant_penalty"]
@@ -94,10 +100,13 @@ def score_business(b: dict, cfg: dict) -> dict:
     w = cfg["weights"]
     feats = {
         "community_affinity": soft(b["community_affinity"], b["community_conf"], cfg),
-        "proximity":          f_proximity(b["distance_km"], cfg),
+        # local presence: distance, unless a recorded connection says more
+        "proximity":          max(f_proximity(b["distance_km"], cfg),
+                                  float(b.get("connection_strength") or 0)),
         "sector_propensity":  f_sector(b["sector"], cfg),
         "brand_fit":          soft(b["brand_fit"], b["brand_conf"], cfg),
-        "company_stability":  f_stability(b["company_age"], b["accounts_dormant"], cfg),
+        "company_stability":  f_stability(b["company_age"], b["accounts_dormant"], cfg,
+                                          known=b.get("company_known", True)),
         "csr_signal":         soft(b["csr_signal"], b["csr_conf"], cfg),
         "ability_to_pay":     f_ability(b["size_band"], cfg),
     }
@@ -106,8 +115,26 @@ def score_business(b: dict, cfg: dict) -> dict:
     return {"fit_score": fit, "features": feats, "contrib": contrib}
 
 
-def recommend_tier(sector, cfg):
-    return cfg["tier_map"].get(sector, cfg["tier_map"]["unknown"])
+def recommend_tier(sector, cfg, connection_kind=None, size_band=None):
+    """'<kind> — <what to offer>'. Relationship first, then the club's real
+    packages sized to the business (config `offers`)."""
+    if connection_kind == "current_sponsor":
+        return "Renewal — existing sponsor; keep warm and look to grow the deal"
+    if connection_kind == "past_sponsor":
+        return "Win-back — sponsored before; ask what would bring them back"
+    if connection_kind == "not_a_fit":
+        return "Not a fit — set aside by the club"
+    tier = cfg["tier_map"].get(sector, cfg["tier_map"]["unknown"])
+    kind, _, generic = tier.partition(" — ")
+    offers = cfg.get("offers") or {}
+    if not offers or kind in ("Low priority", "Review", "Partner (not paid sponsor)"):
+        return tier
+    size = size_band if size_band in offers["by_size"] else "unknown"
+    detail = offers["by_size"][size]
+    extra = offers.get("by_audience", {}).get(kind)
+    if extra and size in ("small", "medium", "large"):
+        detail += f"; or {extra}"
+    return f"{kind} — {detail}"
 
 
 def flags_for(b, cfg):
@@ -115,7 +142,9 @@ def flags_for(b, cfg):
     if b["accounts_dormant"]:
         fl.append("dormant accounts — check still trading")
     if b["sector"] == "national_chain":
-        fl.append("national chain — decisions likely not local")
+        why = b.get("chain_reason")
+        fl.append("national chain or franchise — decisions likely not local"
+                  + (f" ({why})" if why else ""))
     if b["sector"] == "online_ecommerce":
         fl.append("online-only — no local-visibility motive")
     if b["size_band"] == "micro":
@@ -123,6 +152,10 @@ def flags_for(b, cfg):
     warm = b.get("warm_intro")
     if isinstance(warm, str) and warm.strip():        # None/NaN are not warm paths
         fl.append(f"WARM PATH via {warm}")
+    if b.get("connection_kind") == "current_sponsor":
+        fl.append("already a sponsor — treat as a renewal, not a cold approach")
+    if b.get("connection_kind") == "past_sponsor":
+        fl.append("sponsored before — find out why it lapsed before asking again")
     return "; ".join(fl) or "-"
 
 
@@ -200,7 +233,7 @@ def build_queue(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
             business=b["name"], sector=b["sector"], fit_score=r["fit_score"],
             distance_km=round(b["distance_km"], 1),
             top_driver=top.replace("_", " "),
-            tier=recommend_tier(b["sector"], cfg),
+            tier=recommend_tier(b["sector"], cfg, b.get("connection_kind"), b.get("size_band")),
             flags=flags_for(b.to_dict(), cfg),
             _contrib=r["contrib"],
         ))

@@ -42,9 +42,14 @@ import sys
 import json
 import pandas as pd
 
-DEFAULT_MODEL = "claude-haiku-4-5"     # cheap + fast; this is a high-volume job
-MAX_TOKENS = 500
-FEATURES = ("community_affinity", "brand_fit", "csr_signal")
+# cheap + fast; this is a high-volume job. Override with SPONSOR_LLM_MODEL.
+DEFAULT_MODEL = os.environ.get("SPONSOR_LLM_MODEL", "claude-haiku-5-5")
+MAX_TOKENS = 700
+SCORED = ("community_affinity", "brand_fit", "csr_signal")
+# local_connection is read but NOT scored: strong evidence becomes a lead for a
+# person to confirm (then record in connections.csv, where it does count).
+FEATURES = SCORED + ("local_connection",)
+LEAD_MIN = 0.5          # value x confidence needed to raise a connection lead
 
 
 # ===========================================================================
@@ -72,7 +77,7 @@ USER_TEMPLATE = """PROVIDED CONTEXT (the only facts you may use):
 {website_text}
 \"\"\"
 
-Score these three features, each 0.0-1.0, with a confidence (0.0-1.0) reflecting
+Score these four features, each 0.0-1.0, with a confidence (0.0-1.0) reflecting
 how well the CONTEXT supports the judgment, and a one-line justification that
 cites a specific fact or phrase from the context:
 
@@ -83,6 +88,11 @@ cites a specific fact or phrase from the context:
    overlap). Online-only / national brands fit poorly.
 3. csr_signal — visible community-mindedness (charity, grassroots/youth support,
    local causes, existing sponsorships) EVIDENCED IN THE CONTEXT.
+4. local_connection — a SPECIFIC link to Dumbarton FC or local sport: it names
+   Dumbarton FC / "the Sons" / "the Rock", or says it sponsors or has sponsored
+   a sports club, team, league or event. High value ONLY if the text names the
+   club, team or event; quote it in the justification. General charity or
+   "community" wording is csr_signal, not this.
 
 Rules:
 - Use ONLY the context above. If it does not support a judgment, return LOW
@@ -92,7 +102,8 @@ Rules:
 {{
   "community_affinity": {{"value": 0.0, "confidence": 0.0, "justification": ""}},
   "brand_fit":          {{"value": 0.0, "confidence": 0.0, "justification": ""}},
-  "csr_signal":         {{"value": 0.0, "confidence": 0.0, "justification": ""}}
+  "csr_signal":         {{"value": 0.0, "confidence": 0.0, "justification": ""}},
+  "local_connection":   {{"value": 0.0, "confidence": 0.0, "justification": ""}}
 }}"""
 
 
@@ -149,24 +160,47 @@ def parse_json_reply(text: str) -> dict:
 # ===========================================================================
 # MODE 1 — the real Anthropic call  (needs ANTHROPIC_API_KEY)
 # ===========================================================================
-def derive_llm(rec: dict, model=DEFAULT_MODEL, api_key=None) -> dict:
+def derive_llm(rec: dict, model=DEFAULT_MODEL, api_key=None, tries=4) -> dict:
+    """The real call. Retries rate limits / overloads; if it still fails, the
+    business gets neutral, zero-confidence readings (it can't swing the score)
+    rather than stopping the whole run."""
+    import time
     import requests
     api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("no ANTHROPIC_API_KEY set — run in stub mode to go offline")
-    resp = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
-                 "content-type": "application/json"},
-        json={"model": model, "max_tokens": MAX_TOKENS,
-              "system": SYSTEM_PROMPT,
-              "messages": [{"role": "user", "content": build_user_prompt(rec)}]},
-        timeout=40,
-    )
-    resp.raise_for_status()
-    text = "".join(b.get("text", "") for b in resp.json().get("content", [])
-                   if b.get("type") == "text")
-    return parse_json_reply(text)
+    if not (rec.get("website_text") or "").strip():
+        return validate({})                     # nothing to read: save the call
+    last = None
+    for attempt in range(tries):
+        try:
+            resp = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
+                         "content-type": "application/json"},
+                json={"model": model, "max_tokens": MAX_TOKENS,
+                      "system": SYSTEM_PROMPT,
+                      "messages": [{"role": "user", "content": build_user_prompt(rec)}]},
+                timeout=60,
+            )
+            if resp.status_code in (429, 500, 502, 503, 529):
+                last = f"HTTP {resp.status_code}"
+                time.sleep(int(resp.headers.get("retry-after") or 0) or 3 * 2 ** attempt)
+                continue
+            if resp.status_code in (400, 401, 403, 404):
+                # bad key or model name: fail loudly, every call would fail the same way
+                raise RuntimeError(f"Anthropic API {resp.status_code}: {resp.text[:300]}")
+            resp.raise_for_status()
+            text = "".join(b.get("text", "") for b in resp.json().get("content", [])
+                           if b.get("type") == "text")
+            return parse_json_reply(text)
+        except requests.RequestException as e:
+            last = str(e)[:120]
+            time.sleep(3 * 2 ** attempt)
+    out = validate({})
+    for f in FEATURES:
+        out[f]["justification"] = f"AI reading failed ({last}) — defaulted to neutral"
+    return out
 
 
 # ===========================================================================
@@ -181,6 +215,10 @@ _LOCAL = ("local", "community", "town", "family", "family-run", "independent",
 _CSR = ("charity", "fundrais", "sponsor", "support", "donat", "grassroots",
         "youth", "school", "foodbank", "volunteer", "community club", "boys club",
         "girls club", "raised")
+_CONNECT = ("dumbarton fc", "dumbarton football", "sons of the rock", "the sons",
+            "the rock", "proud sponsor", "proud sponsors", "sponsor of", "we sponsor",
+            "sponsors of", "kit sponsor", "shirt sponsor", "youth team", "boys club",
+            "amateur football", "football club")
 _ANTI = ("nationwide", "online only", "online-only", "e-commerce", "ecommerce",
          "ship anywhere", "uk-wide", "delivered to your door", "worldwide")
 
@@ -197,6 +235,7 @@ def derive_stub(rec: dict) -> dict:
         return validate({})               # neutral 0.5, conf 0.0
 
     local_h, csr_h, anti_h = _hits(text, _LOCAL), _hits(text, _CSR), _hits(text, _ANTI)
+    con_h = _hits(text, _CONNECT)
     # confidence rises with how much text there is to judge (saturating)
     base_conf = min(0.95, 0.35 + words / 60.0)
 
@@ -219,7 +258,19 @@ def derive_stub(rec: dict) -> dict:
                                         if anti_h else just("local-facing", local_h))},
         "csr_signal": {"value": csr, "confidence": base_conf * 0.9,
                        "justification": just("CSR", csr_h)},
+        "local_connection": {"value": min(1.0, 0.05 + 0.35 * con_h), "confidence": base_conf * 0.8,
+                             "justification": just("sponsorship / club", con_h)},
     })
+
+
+def connection_lead(flat: dict) -> str | None:
+    """A lab-page lead when the website shows a specific sponsorship / club
+    link. Not scored: a person confirms it and records it in connections.csv."""
+    d = (flat.get("_soft_derived") or {}).get("local_connection")
+    if d and d["value"] * d["confidence"] >= LEAD_MIN:
+        return (f"possible connection from website: {d['justification']} — "
+                f"confirm, then record in connections.csv")
+    return None
 
 
 # ===========================================================================
@@ -239,6 +290,23 @@ def enrich(rec: dict, mode="stub", **kw) -> dict:
         "_soft_derived":      derived,   # full {feature:{value,confidence,justification}}
     })
     return flat
+
+
+def enrich_many(recs, mode="stub", workers=8, **kw):
+    """enrich() over many records, in parallel for the real model (each call is
+    network-bound). Returns results in the same order, printing progress."""
+    if mode == "stub" or len(recs) < 2:
+        return [enrich(r, mode=mode, **kw) for r in recs]
+    from concurrent.futures import ThreadPoolExecutor
+    out, done = [None] * len(recs), [0]
+    def one(i):
+        out[i] = enrich(recs[i], mode=mode, **kw)
+        done[0] += 1
+        if done[0] % 25 == 0 or done[0] == len(recs):
+            print(f"  AI readings: {done[0]}/{len(recs)}")
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        list(ex.map(one, range(len(recs))))
+    return out
 
 
 # ===========================================================================

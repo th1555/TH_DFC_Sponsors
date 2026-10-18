@@ -70,7 +70,7 @@ DIVISION = {
     "68": "local_professional_services",   # real estate (incl. estate agents)
     "69": "local_professional_services",   # legal & accounting
     "70": "local_professional_services",   # head office / management consultancy
-    "71": "local_professional_services",   # architecture & engineering
+    "71": "industrial_b2b_services",       # architecture & engineering (e.g. rail systems)
     "73": "local_professional_services",   # advertising & market research
     "74": "local_professional_services",   # other professional, scientific, technical
     "77": "local_professional_services",   # rental & leasing
@@ -84,11 +84,18 @@ DIVISION = {
     "96": "independent_retail",            # other personal services (96030 funeral split out)
 }
 
+# manufacturing, wholesale and business support -> the B2B firms that, on the
+# club's own evidence, sponsor Dumbarton (print, signage, tools, gas, engineering)
+for _d in [str(d) for d in range(10, 34)] + ["46", "82"]:
+    DIVISION[_d] = "industrial_b2b_services"
+DIVISION["35"] = "industrial_b2b_services"   # gas/electricity supply (e.g. LPG suppliers)
+
 # priority when a company lists several SIC codes: specific local sectors first,
 # broad buckets and non-local last. First match in this order wins.
 PRIORITY = [
     "funeral_directors",
     "transport_coaches_haulage",
+    "industrial_b2b_services",
     "building_construction_trades",
     "utilities_renewables_heating",
     "motor_dealers_garages",

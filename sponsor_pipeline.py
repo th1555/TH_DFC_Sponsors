@@ -35,6 +35,7 @@ import sponsor_db as db
 import ingest_places as places
 import ingest_companies_house as ch
 import fetch_website as web
+import data_checks as dc
 
 RNG = np.random.default_rng(7)
 
@@ -163,10 +164,33 @@ def dedupe_candidates(cands):
                 continue
             other.update(company_number=None, sector="unknown", company_age=0,
                          size_band="unknown", accounts_dormant=False, postcode=None,
+                         company_known=False,
                          ch_flag=f"matched the same Companies House company as "
                                  f"{keep['name']} — no record linked, verify")
             other["business_id"] = _db.business_key(other)
             out.append(other)
+
+    # Google sometimes lists one business twice at the same address under two
+    # names ("West Bridgend Garage" / "West Bridgend Garage - Dumbarton").
+    # Same address + one name containing the other = one business.
+    merged, by_addr = [], {}
+    for c in out:
+        addr = str(c.get("address") or "").strip().lower()
+        twin = next((k for k in by_addr.get(addr, [])
+                     if addr and (_norm_name(k["name"]) in _norm_name(c["name"])
+                                  or _norm_name(c["name"]) in _norm_name(k["name"]))), None)
+        if twin is not None:
+            dropped += 1
+            # keep the cleaner record: confirmed company first, then shorter name
+            if (not twin.get("ch_flag") and c.get("ch_flag")) or \
+               (bool(twin.get("ch_flag")) == bool(c.get("ch_flag")) and len(twin["name"]) <= len(c["name"])):
+                continue
+            merged[merged.index(twin)] = c
+            by_addr[addr][by_addr[addr].index(twin)] = c
+            continue
+        merged.append(c)
+        by_addr.setdefault(addr, []).append(c)
+    out = merged
 
     # last line of defence: every id unique, whatever the data throws up
     seen = {}
@@ -189,20 +213,37 @@ def ingest_real(cfg, ingest_mode="fixture"):
     cands = []
     found = places.discover(cfg, mode=ingest_mode)
     print(f"  Places: {len(found)} businesses found near the ground; looking each up on Companies House...")
-    for p in found:
-        facts = ch.enrich(p["name"], cfg, mode=ingest_mode)
-        cands.append(dict(
+    pending = []
+    for i, p in enumerate(found, 1):
+        facts = ch.enrich(p["name"], cfg, mode=ingest_mode,
+                          place_postcode=dc.postcode_of(p.get("address")))
+        if i % 25 == 0 or i == len(found):
+            print(f"  Companies House: {i}/{len(found)}")
+        pending.append((p, facts))
+
+    # homepages are slow and independent: fetch them in parallel
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=16) as ex:
+        texts = list(ex.map(lambda pf: web.fetch(pf[0].get("website"), mode=web_mode), pending))
+    print(f"  websites: read {sum(1 for t in texts if t)} of {len(texts)} homepages")
+
+    for (p, facts), text in zip(pending, texts):
+        rec = dict(
             name=p["name"], sector=facts["sector"],
             distance_km=p.get("distance_km", 0.0),
             company_age=facts["company_age"], size_band=facts["size_band"],
             accounts_dormant=facts["accounts_dormant"],
-            website_text=web.fetch(p.get("website"), mode=web_mode),
+            website_text=text,
             warm_intro=None,
             source="places+companies_house" if ingest_mode == "api" else "fixture",
             company_number=facts.get("company_number"), ch_flag=facts.get("ch_flag"),
             ch_match_score=facts.get("ch_match_score"),
             website=p.get("website"), address=p.get("address"),
-            postcode=facts.get("postcode")))
+            postcode=facts.get("postcode"), company_known=facts.get("company_known", False),
+            directors_local=facts.get("directors_local"), directors_total=facts.get("directors_total"),
+            google_rating=p.get("google_rating"), google_reviews=p.get("google_reviews"))
+        # chains, and the business's own name/Google type over a mismatched SIC code
+        cands.append(dc.reconcile(rec, cfg, place_types=p.get("types")))
     cands, dropped = dedupe_candidates(cands)
     if dropped:
         print(f"  merged {dropped} duplicate branch(es) of the same business")
@@ -215,22 +256,29 @@ def run(mode="stub", source="synthetic", ingest_mode="fixture"):
     model = sf.DEFAULT_MODEL if mode == "llm" else "stub-keyword-v1"
 
     cands = ingest_real(cfg, ingest_mode) if source == "real" else make_candidates()
-    biz_records, score_rows = [], []
+    conn_table = dc.load_connections(cfg)
     for rec in cands:
         rec["business_id"] = rec.get("business_id") or db.business_key(rec)
-        flat = sf.enrich(rec, mode=mode)                     # step 2
+        dc.apply_connections(rec, cfg, conn_table)           # recorded local links
+    flats = sf.enrich_many(cands, mode=mode)                 # step 2 (parallel for the real model)
+    biz_records, score_rows = [], []
+    for rec, flat in zip(cands, flats):
         r = ss.score_business(flat, cfg)                     # step 1
         top = max(r["contrib"], key=r["contrib"].get)
 
         flags = ss.flags_for(flat, cfg)
         if rec.get("ch_flag"):                               # carry CH match caveats through
             flags = (flags + "; " if flags != "-" else "") + rec["ch_flag"]
+        lead = sf.connection_lead(flat)                      # AI lead: lab page only
+        if lead and not rec.get("connection_kind"):
+            flags = (flags + "; " if flags != "-" else "") + lead
         biz_records.append(rec)
         db.upsert_soft_features(conn, rec["business_id"], flat["_soft_derived"], model)
         score_rows.append(dict(
             business_id=rec["business_id"], fit_score=r["fit_score"],
             top_driver=top.replace("_", " "),
-            contrib=r["contrib"], tier=ss.recommend_tier(rec["sector"], cfg),
+            contrib=r["contrib"],
+            tier=ss.recommend_tier(rec["sector"], cfg, rec.get("connection_kind"), rec.get("size_band")),
             flags=flags))
 
     db.upsert_businesses(conn, biz_records)                  # step 3

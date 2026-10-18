@@ -46,7 +46,10 @@ soft_features:
 # engine LEARNS this from real data and replaces it — for now it's the honest
 # hand table (flagged as such in any pitch).
 sector_propensity:
-  transport_coaches_haulage:            0.90   # proven (Marbill sponsors The Rock)
+  transport_coaches_haulage:            0.90   # proven (Marbill: stadium + U20 shirts)
+  industrial_b2b_services:              0.85   # the club's actual sponsor mix: print (JJR),
+                                               # rail systems (C&G), gas (Algas), tools (Gedore),
+                                               # signage (Signs Express) - see connections.csv
   building_construction_trades:         0.90   # classic lower-league backbone
   pubs_bars_hospitality:                0.85   # matchday-adjacent, community-facing
   motor_dealers_garages:                0.85   # owner-led, board & programme regulars
@@ -66,6 +69,7 @@ sector_propensity:
 tier_map:
   transport_coaches_haulage:    "B2B — programme, website, training-wear"
   building_construction_trades: "B2B — programme, website, training-wear"
+  industrial_b2b_services:      "B2B — hospitality for clients, boards, kit"
   local_professional_services:  "B2B — programme, website, training-wear"
   utilities_renewables_heating: "B2B — programme, website, training-wear"
   pubs_bars_hospitality:        "Consumer — matchday, hospitality, visible board"
@@ -75,20 +79,28 @@ tier_map:
   funeral_directors:            "Community — programme + community-programme naming"
   health_fitness_physio_dental: "Community — bundle the 4G pitch (pitch-time/naming)"
   public_sector_charity:        "Partner (not paid sponsor) — flag separately"
-  national_chain:               "Low priority — decisions likely not local"
+  national_chain:               "Low priority — decisions likely not local (if a franchise, ask for the local owner)"
   online_ecommerce:             "Low priority — no local-visibility motive"
   unknown:                      "Review — classify sector first"
 
 # --- data ingestion (the real-data layer) ------------------------------------
 # Official APIs, so unlike the recruitment scrapers these don't block cloud IPs.
 ingest:
-  stadium:                   # Dumbarton FC — C&G Systems Stadium ("The Rock")
-    name: "C&G Systems Stadium"
+  stadium:                   # Dumbarton FC — "The Rock" (naming rights: Marbill Coaches, 2026/27)
+    name: "Marbill Coaches Stadium"
     lat: 55.9369
     lng: -4.5583
   places:
-    radius_m: 8000           # candidate search radius around the ground
+    radius_m: 25000          # search bias around the ground (Google's max is 50 km)
+    max_distance_km: 25.0    # hard ceiling: Google's radius is only a bias, and
+                             # without it results came back from up to 54 km.
+                             # Inside it, distance is SCORED (decay) and FILTERED
+                             # on the page, not cut, so a well-connected firm
+                             # further out can still rank.
     max_per_query: 20
+    # Each seed query runs once per town ("coach hire in Alexandria"), so a wide
+    # radius doesn't let Glasgow results crowd out the businesses near the ground.
+    towns: ["Dumbarton", "Alexandria", "Balloch", "Helensburgh", "Clydebank", "Erskine"]
     seed_queries:            # one per local sector we prospect (location-biased)
       - "coach hire"
       - "haulage"
@@ -107,5 +119,128 @@ ingest:
       - "physiotherapy"
       - "dental practice"
       - "hardware shop"
+      # added Oct 2026: the kinds of firm that actually sponsor Dumbarton
+      # (print, signage, engineering, tiling, industrial suppliers) were never searched
+      - "printing"
+      - "signs"
+      - "engineering"
+      - "industrial supplies"
+      - "tiling"
+      - "electrical contractor"
   companies_house:
     match_min_score: 0.60    # name-similarity floor to accept a CH match (else flag)
+    # A name match must ALSO agree on place (data_checks.location_agreement):
+    # same postcode district, or registered / registered office in Scotland.
+    # Name-only matches to companies registered elsewhere are not linked.
+    home_areas: [G, PA]      # a Scottish match with its office outside these is kept but flagged
+
+# --- local connections ---------------------------------------------------------
+# A recorded link to the town or club counts as local presence: the proximity
+# part scores max(distance score, connection strength), so a firm 20 km away
+# whose director lives in Dumbarton, or who already sponsors the club, isn't
+# buried by distance. All three sources are recorded facts, so they count on the
+# shipped page. The AI's "possible connection" reading is NOT scored: it's shown
+# on the lab page as a lead for a person to confirm (then add to the CSV).
+connections:
+  file: connections.csv      # club-maintained: match, kind, note
+  strength:                  # by kind (the `kind` column in connections.csv)
+    current_sponsor: 1.0     # sponsoring now -> shown as a Renewal
+    past_sponsor: 0.9        # sponsored before -> a Win-back prospect
+    warm_intro: 0.9          # someone at the club has a way in
+    club_recorded: 1.0       # any other link the club records
+    local_director: 0.75     # a Companies House director based in a local district
+    not_a_fit: 0.0           # the club has ruled it out -> hidden by default
+  local_districts: [G82, G83, G84, G81, G60]   # Dumbarton, Vale of Leven, Helensburgh, Clydebank, Bowling
+
+# --- chains & franchises -------------------------------------------------------
+# SIC codes never say "national chain", so chains are caught here instead
+# (data_checks.chain_reason). Domains are the reliable signal: a branch page on
+# a national website. Names are matched as whole words, so "B & M Builders"
+# (a local firm) is not mistaken for B&M stores.
+chains:
+  domains:
+    - bmstores.co.uk
+    - toolstation.com
+    - screwfix.com
+    - kwik-fit.com
+    - arnoldclark.com
+    - asda.com
+    - tesco.com
+    - sainsburys.co.uk
+    - morrisons.com
+    - aldi.co.uk
+    - lidl.co.uk
+    - dominos.co.uk
+    - greggs.co.uk
+    - jdwetherspoon.com
+    - belhaven.co.uk
+    - heritagepubs.co.uk
+    - jewson.co.uk
+    - wolseley.co.uk
+    - travisperkins.co.uk
+    - howdens.com
+    - halfords.com
+    - motorpoint.co.uk
+    - easternwestern.co.uk
+    - slaterhogg.co.uk
+    - allenandharris.co.uk
+    - energiefitness.com
+    - puregym.com
+    - coop.co.uk
+    - dignityfunerals.co.uk
+    - scottishdentalcare.co.uk
+    - clydemunrodental.com
+    - specsavers.co.uk
+    - boots.com
+  names:
+    - B&M Home Store
+    - B&M Bargains
+    - Toolstation
+    - Screwfix
+    - Kwik Fit
+    - Arnold Clark
+    - Asda
+    - Tesco
+    - Sainsbury's
+    - Morrisons
+    - Aldi
+    - Lidl
+    - Domino's
+    - Greggs
+    - McDonald's
+    - KFC
+    - Subway
+    - Wetherspoon
+    - Jewson
+    - Wolseley
+    - Travis Perkins
+    - Howdens
+    - Halfords
+    - Motorpoint
+    - Car Deal Warehouse
+    - Slater Hogg
+    - Allen and Harris
+    - Energie Fitness
+    - PureGym
+    - Co-op Funeralcare
+    - Specsavers
+    - Boots
+    - Farmfoods
+    - Home Bargains
+
+# --- what to offer, at what price ---------------------------------------------
+# From the club's 2026/27 commercial page (dumbartonfootballclub.com/club/commercial),
+# prices in GBP plus VAT. The suggestion is sized to the business, so a micro firm
+# is pitched a £100 player sponsorship, not a £3,000 kit slot. Update each season.
+offers:
+  source: "Dumbarton FC commercial page, 2026/27 (GBP, plus VAT)"
+  by_size:
+    micro:   "player sponsor (£100–£200), concourse advert (from £100) or stadium steps (from £50)"
+    small:   "Women's or U20 kit slot (£300), single pitchside board (£800) or ball sponsor with hospitality for 8 (£600)"
+    medium:  "double pitchside board (£1,500), matchball pods (from £1,000) or a men's kit slot (£3,000)"
+    large:   "Women's team front of shirt (£5,000), stadium/stand naming or media partner (on request)"
+    unknown: "Women's or U20 kit slot (£300) or single pitchside board (£800)"
+  by_audience:               # added for small firms and up
+    B2B:       "match sponsor hospitality for 8 (£800) to entertain clients"
+    Consumer:  "social media package (from £100) alongside a board, for footfall"
+    Community: "Women's or U20 team packages (£300) for youth and community association"

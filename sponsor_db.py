@@ -77,7 +77,12 @@ CREATE TABLE IF NOT EXISTS outreach_status (
 # Facts added after v1. ALTER TABLE keeps an existing store (and its human
 # notes) intact instead of forcing a rebuild.
 EXTRA_BUSINESS_COLS = {"company_number": "TEXT", "website": "TEXT",
-                       "address": "TEXT", "postcode": "TEXT", "ch_flag": "TEXT"}
+                       "address": "TEXT", "postcode": "TEXT", "ch_flag": "TEXT",
+                       # v2: local connections + extra signals
+                       "connection_kind": "TEXT", "connection_note": "TEXT",
+                       "connection_strength": "REAL", "directors_local": "INTEGER",
+                       "directors_total": "INTEGER", "google_rating": "REAL",
+                       "google_reviews": "INTEGER", "company_known": "INTEGER"}
 
 
 def init_db(conn):
@@ -95,14 +100,20 @@ def init_db(conn):
 def upsert_businesses(conn, records):
     cols = ["business_id", "name", "sector", "distance_km", "company_age", "size_band",
             "accounts_dormant", "website_text", "warm_intro", "source", "fetched_at",
-            "company_number", "website", "address", "postcode", "ch_flag"]
+            "company_number", "website", "address", "postcode", "ch_flag",
+            "connection_kind", "connection_note", "connection_strength", "directors_local",
+            "directors_total", "google_rating", "google_reviews", "company_known"]
     rows = [(r["business_id"], r.get("name"), r.get("sector"),
              float(r.get("distance_km", 0) or 0), int(r.get("company_age", 0) or 0),
              r.get("size_band"), int(bool(r.get("accounts_dormant"))),
              r.get("website_text"), r.get("warm_intro"),
              r.get("source", "synthetic"), now(),
              r.get("company_number"), r.get("website"), r.get("address"),
-             r.get("postcode"), r.get("ch_flag")) for r in records]
+             r.get("postcode"), r.get("ch_flag"),
+             r.get("connection_kind"), r.get("connection_note"), r.get("connection_strength"),
+             r.get("directors_local"), r.get("directors_total"), r.get("google_rating"),
+             r.get("google_reviews"),
+             int(bool(r.get("company_known", bool(r.get("company_number")))))) for r in records]
     updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c != "business_id")
     conn.executemany(
         f"INSERT INTO businesses ({','.join(cols)}) VALUES ({','.join('?' * len(cols))}) "

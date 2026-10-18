@@ -212,6 +212,11 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
 .facts div:first-child{border-left:0}
 .facts b{display:block;font-size:19px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .facts span{font-size:13px;color:var(--muted)}
+.tagrow{display:grid;gap:8px;margin-top:4px}
+.tagrow .seg button{font-size:13.5px;padding:7px 4px}
+.tagrow input,.addspon input,.addspon select{width:100%;border:1px solid var(--line-2);border-radius:6px;background:#fff;padding:8px 10px;font-size:15px}
+.tagsaved{font-size:13px;color:var(--muted)}
+.addspon{display:grid;gap:6px}
 .callout{border-left:4px solid var(--gold);background:#FFFCF0;padding:10px 14px;border-radius:0 6px 6px 0;margin:10px 0 0;font-size:14.5px}
 .callout b{display:block;color:var(--ink)}
 .callout.warn{border-left-color:#C2410C;background:#FFF7F2}
@@ -303,7 +308,10 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
           <option value="2">Within 2 km</option>
           <option value="5">Within 5 km</option>
           <option value="10">Within 10 km</option>
+          <option value="15">Within 15 km</option>
+          <option value="25">Within 25 km</option>
         </select>
+        <p class="hint">Distance is scored, not cut off: a business with a recorded local connection keeps its points wherever it is.</p>
       </div>
       <div class="fgroup">
         <span class="flabel" id="sizeL">Company size</span>
@@ -327,6 +335,19 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
       <div class="fgroup">
         <label class="chk"><input id="fLocal" type="checkbox" checked> Hide national chains and online-only</label>
         <label class="chk"><input id="fDormant" type="checkbox"> Hide dormant or not trading</label>
+        <label class="chk"><input id="fConn" type="checkbox"> Only businesses with a local connection</label>
+        <label class="chk"><input id="fSpon" type="checkbox" checked> Hide current sponsors</label>
+        <label class="chk"><input id="fNotFit" type="checkbox" checked> Hide businesses marked not a fit</label>
+      </div>
+      <div class="fgroup">
+        <span class="flabel" id="addL">Add a sponsor that isn't listed</span>
+        <div class="addspon" role="group" aria-labelledby="addL">
+          <input id="addName" type="text" placeholder="Business name" autocomplete="off">
+          <select id="addKind"><option value="current_sponsor">Current sponsor</option><option value="past_sponsor">Past sponsor</option><option value="warm_intro">Warm path</option></select>
+          <input id="addNote" type="text" placeholder="Note, e.g. sleeve sponsor 2026/27" autocomplete="off">
+          <button class="btn" id="addBtn" type="button">Add to sponsor list</button>
+        </div>
+        <p class="hint" id="addMsg">Saved in this browser and included in the sponsor list download.</p>
       </div>
     </aside>
 
@@ -340,6 +361,8 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
           <button type="button" role="tab" id="tabT" aria-selected="true" aria-controls="viewT">Table</button>
           <button type="button" role="tab" id="tabC" aria-selected="false" aria-controls="viewC">Map of fit</button>
         </div>
+        <button class="btn" id="dlConn" type="button" title="Download the club's sponsor and connection list (connections.csv)">
+          <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v9M4 7l4 4 4-4M2 14.5h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Sponsor list</button>
         <button class="btn" id="download" type="button">
           <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v9M4 7l4 4 4-4M2 14.5h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>CSV</button>
       </div>
@@ -414,24 +437,60 @@ const SIZE = {micro:"Micro",small:"Small",medium:"Medium",large:"Large",unknown:
 const SIZE_RANK = {micro:1,small:2,medium:3,large:4,unknown:0};
 const NONLOCAL = new Set(["national_chain","online_ecommerce"]);
 const PART = {
-  proximity:          ["Distance from the ground", "closer scores higher"],
+  proximity:          ["Local presence", "distance from the ground, or a recorded local connection"],
   sector_propensity:  ["Sector", "how often this kind of business backs a club like us"],
   company_stability:  ["Trading record", "years trading, accounts up to date"],
   ability_to_pay:     ["Size", "rough budget, kept light on purpose"],
   community_affinity: ["Local roots", "read from its own website"],
   brand_fit:          ["Fit with a town club", "read from its own website"],
   csr_signal:         ["Community support", "read from its own website"],
+  local_connection:   ["Sponsorship / club link (not scored)", "a lead for a person to confirm"],
 };
 const SHORT_AP = {"Partner (not paid sponsor)":"Partner","Low priority":"Low priority"};
 const apKind = b => SHORT_AP[b.approach.kind] || b.approach.kind;
-const town = b => { const a = String(b.address||"").split(",").map(s=>s.trim()).filter(Boolean); return a.length ? a[a.length-1].replace(/\s+[A-Z]{1,2}\d[\dA-Z]?\s*\d[A-Z]{2}$/,"") : ""; };
+const town = b => { const a = String(b.address||"").split(",").map(s=>s.trim()).filter(s => s && !/^(UK|United Kingdom)$/i.test(s)); return a.length ? a[a.length-1].replace(/\s+[A-Z]{1,2}\d[\dA-Z]?\s*\d[A-Z]{2}$/,"") : ""; };
 const KEYWORD = (DATA.soft_models||[]).some(m => /stub|keyword/i.test(m));
 
 /* ---------- the businesses ---------- */
 const BIZ = DATA.businesses.map(b => ({...b, score: LAB ? b.fit : b.local_fit,
   townName: town(b), years: b.company_age || null, sizeRank: SIZE_RANK[b.size_band] ?? 0}));
 const SCORE_NAME = LAB ? "Fit score" : "Local fit";
-const topCut = (() => { const v = BIZ.map(b => b.score).sort((a,b)=>b-a); return v[Math.max(0, Math.ceil(v.length*.1)-1)] ?? 100; })();
+
+/* ---------- club tags: saved in this browser, downloadable as connections.csv ---------- */
+const TAG_KEY = "sons-sponsors-tags-v1";
+const KIND_LABEL = {current_sponsor:"Current sponsor", past_sponsor:"Past sponsor", warm_intro:"Warm path",
+                    club_recorded:"Club connection", local_director:"Local director", not_a_fit:"Not a fit"};
+const STRENGTH = DATA.connection_strength || {current_sponsor:1, past_sponsor:.9, warm_intro:.9, club_recorded:1, local_director:.75, not_a_fit:0};
+const RELN_AP = {current_sponsor:{kind:"Renewal", detail:"existing sponsor; keep warm and look to grow the deal"},
+                 past_sponsor:{kind:"Win-back", detail:"sponsored before; ask what would bring them back"},
+                 not_a_fit:{kind:"Not a fit", detail:"set aside by the club"}};
+let TAGS = {}, EXTRA = [];
+try { const t = JSON.parse(localStorage.getItem(TAG_KEY) || "{}"); TAGS = t.tags || {}; EXTRA = t.extra || []; } catch (e) {}
+const saveTags = () => { try { localStorage.setItem(TAG_KEY, JSON.stringify({tags:TAGS, extra:EXTRA})); return true; } catch (e) { return false; } };
+const HARD_K = ["proximity","sector_propensity","company_stability","ability_to_pay"];
+BIZ.forEach(b => { b._base = {prox: {...b.parts.proximity}, local_fit: b.local_fit, fit: b.fit, connection: b.connection, approach: b.approach}; });
+function applyTag(b){
+  const t = TAGS[b.id], base = b._base, W = DATA.weights;
+  b.connection = t ? (t.kind ? {kind:t.kind, note:t.note || "tagged by the club", local:true} : null) : base.connection;
+  let prox = {...base.prox};
+  if (t) {                                   // the club's tag replaces whatever the pipeline recorded
+    const distPts = b.distance_km != null && DATA.decay_km ? Math.exp(-b.distance_km / DATA.decay_km) * W.proximity : base.prox.points;
+    const connPts = t.kind ? (STRENGTH[t.kind] ?? 0) * W.proximity : 0;
+    prox = {points: Math.max(distPts, connPts), weight: W.proximity};
+    if (connPts > distPts + .01) prox.via = b.connection.note;
+  }
+  b.parts = {...b.parts, proximity: prox};
+  const hardTot = HARD_K.reduce((a,k) => a + W[k], 0);
+  b.local_fit = 100 * HARD_K.reduce((a,k) => a + b.parts[k].points, 0) / hardTot;
+  if (LAB) b.fit = base.fit - base.prox.points + prox.points;
+  b.score = LAB ? b.fit : b.local_fit;
+  const k = b.connection && b.connection.kind;
+  b.approach = RELN_AP[k] || (t ? (base.connection && RELN_AP[base.connection.kind] ? {kind:"Review", detail:"relationship cleared; reassess"} : base.approach) : base.approach);
+}
+BIZ.forEach(applyTag);
+let topCut = 100;
+const setTopCut = () => { const v = BIZ.map(b => b.score).sort((a,b)=>b-a); topCut = v[Math.max(0, Math.ceil(v.length*.1)-1)] ?? 100; };
+setTopCut();
 
 /* ---------- header, notices, KPIs ---------- */
 $("nav").innerHTML = (DATA.nav||[]).map(n => `<a href="${esc(n.href)}"${n.current ? ' aria-current="page"' : ""}>${esc(n.label)}</a>`).join("");
@@ -443,9 +502,15 @@ if (LAB) notes += `<div class="notice lab" role="note">${ICON}<div><b>Prototype.
 notes += `<div class="notice" role="note">${ICON}<div><b>A ranking for deciding who to approach first.</b> It knows location, sector and company records. It can't see the owner, their budget or whether they already sponsor someone. Use it to plan calls, not to judge a business.</div></div>`;
 $("notices").innerHTML = notes;
 const within5 = BIZ.filter(b => b.distance_km != null && b.distance_km <= 5).length;
-$("kpis").innerHTML = [[BIZ.length,"businesses"],[within5,"within 5 km"],
-  [BIZ.filter(b => LIVE.has(b.status)).length,"in progress"],[BIZ.filter(b => b.status==="won").length,"won"]]
-  .map(([v,k]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("");
+function drawKpis(){
+  const cur = BIZ.filter(b => b.connection && b.connection.kind === "current_sponsor").length
+    + (DATA.connections_unmatched || []).filter(r => r.kind === "current_sponsor").length
+    + EXTRA.filter(r => r.kind === "current_sponsor").length;
+  $("kpis").innerHTML = [[BIZ.length,"businesses"],[within5,"within 5 km"],[cur,"current sponsors"],
+    [BIZ.filter(b => LIVE.has(b.status)).length,"in progress"],[BIZ.filter(b => b.status==="won").length,"won"]]
+    .map(([v,k]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("");
+}
+drawKpis();
 $("foot").textContent = `Businesses from Google Places. Company records from Companies House.${LAB ? " Website readings from each business's own homepage." : ""} Scores are estimates calculated from those records. Sons Sponsors, built for Dumbarton FC.`;
 
 /* ---------- table head ---------- */
@@ -474,13 +539,15 @@ function fixGroups(){
 /* ---------- filters ---------- */
 const SECTORS = [...new Set(BIZ.map(b => b.sector))].sort((a,b) => BIZ.filter(x=>x.sector===b).length - BIZ.filter(x=>x.sector===a).length);
 const LABEL_OF = Object.fromEntries(BIZ.map(b => [b.sector, b.sector_label]));
-const DEF = {secs:null, dist:0, size:"", status:"", q:"", hideNonLocal:true, hideDormant:false, sort:"score", dir:-1};
+const DEF = {secs:null, dist:0, size:"", status:"", q:"", hideNonLocal:true, hideDormant:false, onlyConn:false, hideSpon:true, hideNotFit:true, sort:"score", dir:-1};
+const connLabel = b => b.connection ? (KIND_LABEL[b.connection.kind] || "Local connection") : "";
 const S = {...DEF, secs: new Set(SECTORS)};
 $("secBox").innerHTML = SECTORS.map(s => `<label class="chk"><input type="checkbox" data-s="${esc(s)}" checked> ${esc(LABEL_OF[s])} <span class="c">${BIZ.filter(b=>b.sector===s).length}</span></label>`).join("");
 
 function syncControls(){
   $("fDist").value = S.dist; $("fStatus").value = S.status; $("fSearch").value = S.q;
-  $("fLocal").checked = S.hideNonLocal; $("fDormant").checked = S.hideDormant;
+  $("fLocal").checked = S.hideNonLocal; $("fDormant").checked = S.hideDormant; $("fConn").checked = S.onlyConn;
+  $("fSpon").checked = S.hideSpon; $("fNotFit").checked = S.hideNotFit;
   document.querySelectorAll("#sizeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.size)));
   document.querySelectorAll("#secBox input").forEach(i => i.checked = S.secs.has(i.dataset.s));
 }
@@ -494,6 +561,9 @@ function visible(){
     (!S.status || (S.status === "live" ? LIVE.has(b.status) : b.status === S.status)) &&
     (!S.hideNonLocal || !NONLOCAL.has(b.sector)) &&
     (!S.hideDormant || !b.dormant) &&
+    (!S.onlyConn || (!!b.connection && b.connection.kind !== "not_a_fit")) &&
+    (!S.hideSpon || !b.connection || b.connection.kind !== "current_sponsor") &&
+    (!S.hideNotFit || !b.connection || b.connection.kind !== "not_a_fit") &&
     (!q || (b.name||"").toLowerCase().includes(q) || (b.address||"").toLowerCase().includes(q)));
   const key = {name: b => (b.name||"").toLowerCase(), sector_label: b => b.sector_label, approach: b => apKind(b),
                status: b => ["in-talks","contacted","to-approach","won","new","dead"].indexOf(b.status)}[S.sort] || (b => b[S.sort] ?? -1);
@@ -517,7 +587,7 @@ function render(){
     $("rows").innerHTML = LIST.map((b,i) => `
       <tr data-n="${b.n}" tabindex="0" aria-label="${esc(b.name)}, open profile">
         <td class="rk">${i+1}</td>
-        <td class="l pl"><span class="nm">${esc(b.name)}</span>${b.warm_intro ? `<span class="warm">Warm path</span>` : ""}
+        <td class="l pl"><span class="nm">${esc(b.name)}</span>${b.connection ? `<span class="warm">${esc(connLabel(b))}</span>` : b.warm_intro ? `<span class="warm">Warm path</span>` : ""}
           <span class="cl">${esc(b.sector_label)}${b.townName ? " · " + esc(b.townName) : ""}</span>
           <span class="mob">${km(b.distance_km)} · ${b.years ? b.years + " yrs trading · " : ""}${esc(SIZE[b.size_band]||"")} · ${esc(apKind(b))}</span>
           ${b.flags.length ? `<span class="fl">Check: ${esc(b.flags.join("; "))}</span>` : ""}</td>
@@ -533,7 +603,7 @@ function render(){
   fixGroups();
   if (!$("viewC").hidden) drawScatter();
 }
-$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;${LAB ? "Local fit plus the website readings, out of 100." : "distance, sector, trading record and size, weighted and scaled to 100."} Gold bar: top 10% of this list.</span><span><span class="warm" style="margin:0">Warm path</span>&nbsp;someone at the club already has a way in.</span>`;
+$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;${LAB ? "Local fit plus the website readings, out of 100." : "local presence, sector, trading record and size, weighted and scaled to 100."} Gold bar: top 10% of this list.</span><span><span class="warm" style="margin:0">Tag</span>&nbsp;a recorded local connection: current sponsor, warm path, or a director based locally. It counts as local presence.</span>`;
 
 /* ---------- events ---------- */
 $("head").onclick = e => {
@@ -552,6 +622,30 @@ $("fStatus").onchange = e => { S.status = e.target.value; render(); };
 $("fSearch").oninput  = e => { S.q = e.target.value; render(); };
 $("fLocal").onchange  = e => { S.hideNonLocal = e.target.checked; render(); };
 $("fDormant").onchange= e => { S.hideDormant = e.target.checked; render(); };
+$("fConn").onchange   = e => { S.onlyConn = e.target.checked; render(); };
+$("fSpon").onchange   = e => { S.hideSpon = e.target.checked; render(); };
+$("fNotFit").onchange = e => { S.hideNotFit = e.target.checked; render(); };
+$("addBtn").onclick = () => {
+  const name = $("addName").value.trim(); if (!name) { $("addName").focus(); return; }
+  EXTRA.push({match:name, kind:$("addKind").value, note:$("addNote").value.trim(), at:new Date().toISOString().slice(0,10)});
+  const ok = saveTags(); $("addName").value = ""; $("addNote").value = "";
+  $("addMsg").textContent = ok ? `Added ${name}. ${EXTRA.length} added in this browser; included in the sponsor list download.` : "Couldn't save in this browser; download the sponsor list now to keep it.";
+  drawKpis();
+};
+$("dlConn").onclick = () => {
+  const rows = new Map();
+  (DATA.connections_unmatched || []).forEach(r => rows.set(r.match.toLowerCase(), [r.match, r.kind, r.note]));
+  BIZ.forEach(b => {
+    const key = b.company_number || b.name;
+    if (b.connection && b.connection.kind !== "local_director") rows.set(String(key).toLowerCase(), [key, b.connection.kind, b.connection.note]);
+    else if (TAGS[b.id] && !TAGS[b.id].kind) rows.delete(String(key).toLowerCase());
+  });
+  EXTRA.forEach(r => rows.set(r.match.toLowerCase(), [r.match, r.kind, r.note]));
+  const csv = [["match","kind","note"], ...rows.values()].map(r => r.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"})); a.download = "connections.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+};
 function resetAll(){ Object.assign(S, DEF, {secs: new Set(SECTORS), sort:S.sort, dir:S.dir}); syncControls(); render(); }
 $("reset").onclick = resetAll;
 $("openF").onclick = () => { $("filters").classList.add("open"); $("scrim").classList.add("open"); };
@@ -569,10 +663,11 @@ window.addEventListener("resize", () => { fixGroups(); if (!$("viewC").hidden) d
 $("download").onclick = () => {
   const cols = ["Rank","Business","Sector","Address","Distance from ground (km)","Years trading","Size (Companies House)",
     "Accounts dormant","Companies House number","Website", ...(LAB ? ["Local fit (records only)","Fit score (with website)"] : ["Local fit"]),
-    "Suggested approach","Approach detail","Warm path","Checks","Outreach status","Owner","Notes"];
+    "Suggested approach","Approach detail","Warm path","Local connection","Google reviews","Google rating","Checks","Outreach status","Owner","Notes"];
   const rows = LIST.map((b,i) => [i+1, b.name, b.sector_label, b.address, b.distance_km, b.years ?? "", SIZE[b.size_band] || "",
     b.dormant ? "Yes" : "No", b.company_number || "", b.website || "", ...(LAB ? [f0(b.local_fit), f0(b.fit)] : [f0(b.local_fit)]),
-    apKind(b), b.approach.detail, b.warm_intro || "", b.flags.join("; "), STATUS[b.status] || b.status, b.owner || "", b.notes || ""]);
+    apKind(b), b.approach.detail, b.warm_intro || "", b.connection ? connLabel(b) + ": " + b.connection.note : "",
+    b.google_reviews ?? "", b.google_rating ?? "", b.flags.join("; "), STATUS[b.status] || b.status, b.owner || "", b.notes || ""]);
   const csv = [cols, ...rows].map(r => r.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], {type:"text/csv"}));
@@ -648,7 +743,7 @@ function drawScatter(){
   const ex = [...BIZ].sort((a,b) => b.local_fit - a.local_fit)[0];
   if (ex){
     const p = ex.parts, pts = hard.reduce((a,k) => a + p[k].points, 0);
-    $("example").innerHTML = `<b>Example.</b> ${esc(ex.name)}, ${km(ex.distance_km)} away: distance ${p.proximity.points.toFixed(1)} of ${W.proximity} + sector ${p.sector_propensity.points.toFixed(1)} of ${W.sector_propensity} + trading ${p.company_stability.points.toFixed(1)} of ${W.company_stability} + size ${p.ability_to_pay.points.toFixed(1)} of ${W.ability_to_pay} = ${pts.toFixed(1)} of ${hardTot}, so a Local fit of <b>${f0(ex.local_fit)}</b>.`;
+    $("example").innerHTML = `<b>Example.</b> ${esc(ex.name)}, ${km(ex.distance_km)} away: local presence ${p.proximity.points.toFixed(1)} of ${W.proximity} + sector ${p.sector_propensity.points.toFixed(1)} of ${W.sector_propensity} + trading ${p.company_stability.points.toFixed(1)} of ${W.company_stability} + size ${p.ability_to_pay.points.toFixed(1)} of ${W.ability_to_pay} = ${pts.toFixed(1)} of ${hardTot}, so a Local fit of <b>${f0(ex.local_fit)}</b>.`;
   }
   const keys = Object.keys(W).sort((a,b) => W[b] - W[a]), max = Math.max(...keys.map(k => W[k]));
   const scale = LAB ? 100 : hardTot;
@@ -668,7 +763,8 @@ function drawScatter(){
 let lastFocus = null;
 function pbar(k, part, soft){
   const frac = part.weight ? part.points / part.weight : 0;
-  return `<div class="pb"><span class="k">${esc(PART[k][0])}<small>${esc(PART[k][1])}</small></span>
+  const sub = part.via ? "lifted by a local connection: " + part.via : PART[k][1];
+  return `<div class="pb"><span class="k">${esc(PART[k][0])}<small>${esc(sub)}</small></span>
     <span class="bar"><i class="${soft ? "soft" : frac >= .85 ? "top" : ""}" style="width:${Math.max(2, frac*100)}%"></i></span>
     <span class="pv">${part.points.toFixed(1)} <small>of ${part.weight}</small></span></div>`;
 }
@@ -689,6 +785,8 @@ function openBiz(n, from){
         ${b.years ? `<span>Trading <b>${b.years} yrs</b></span>` : ""}
         <span>Size: <b>${esc(SIZE[b.size_band] || "Not known")}</b></span>
         ${b.warm_intro ? `<span class="hl">Warm path: <b>${esc(b.warm_intro)}</b></span>` : ""}
+        ${b.connection && b.connection.kind !== "warm_intro" ? `<span class="hl">${esc(connLabel(b))}</span>` : ""}
+        ${b.google_reviews ? `<span>Google: <b>${b.google_rating != null ? Number(b.google_rating).toFixed(1) + "★" : ""}</b> from ${b.google_reviews} reviews</span>` : ""}
         <span class="${LIVE.has(b.status) || b.status === "won" ? "hl" : ""}">Outreach: <b>${esc(STATUS[b.status] || b.status)}</b></span>
       </div>
     </div>
@@ -709,10 +807,23 @@ function openBiz(n, from){
         ${LAB && b.soft_parts ? Object.keys(b.soft_parts).map(k => pbar(k, b.soft_parts[k], true)).join("") : ""}
       </section>
       <section class="dcard">
+        <h3>Club relationship</h3>
+        <p class="sub">Tag this business for the club. A current or past sponsor or a warm path counts as local presence; "Not a fit" hides it.</p>
+        <div class="tagrow">
+          <div class="seg" id="tagSeg" role="group" aria-label="Relationship">
+            ${[["","None"],["current_sponsor","Current sponsor"],["past_sponsor","Past sponsor"],["warm_intro","Warm path"],["not_a_fit","Not a fit"]]
+              .map(([v,l]) => `<button type="button" data-v="${v}" aria-pressed="${String((b.connection && b.connection.kind !== "local_director" ? b.connection.kind : "") === v)}">${l}</button>`).join("")}
+          </div>
+          <input id="tagNote" type="text" placeholder="Note, e.g. 'sleeve sponsor 2026/27' or 'Jamie knows the owner'" value="${esc(b.connection && b.connection.kind !== "local_director" ? (b.connection.note || "") : "")}">
+          <div><button class="btn" id="tagSave" type="button">Save</button> <span class="tagsaved" id="tagMsg">${TAGS[b.id] ? "Tagged in this browser" + (TAGS[b.id].at ? " on " + esc(TAGS[b.id].at) : "") + "." : ""}</span></div>
+        </div>
+      </section>
+      <section class="dcard">
         <h3>Suggested approach: ${esc(apKind(b))}</h3>
         <p class="sub" style="margin:0">${esc(b.approach.detail || "Classify the sector first, then decide what to offer.")}</p>
         ${b.flags.map(f => `<div class="callout warn"><b>Check first</b>${esc(f.charAt(0).toUpperCase() + f.slice(1))}.</div>`).join("")}
         ${b.warm_intro ? `<div class="callout"><b>Warm path</b>${esc(b.warm_intro)}. Start here rather than a cold approach.</div>` : ""}
+        ${b.connection && b.connection.kind !== "warm_intro" ? `<div class="callout"><b>${esc(connLabel(b))}</b>${esc(b.connection.note.charAt(0).toUpperCase() + b.connection.note.slice(1))}.</div>` : ""}
       </section>
       <section class="dcard">
         <h3>Company record</h3>
@@ -722,6 +833,7 @@ function openBiz(n, from){
           <div><b>${b.years ? b.years + " yrs" : "–"}</b><span>Trading</span></div>
           <div><b>${esc(SIZE[b.size_band] || "Not known")}</b><span>Accounts size</span></div>
           <div><b>${esc(accounts)}</b><span>Accounts</span></div>
+          ${b.directors_total ? `<div><b>${b.directors_local || 0} of ${b.directors_total}</b><span>Directors based locally</span></div>` : ""}
         </div>
         ${b.ch_flag ? `<div class="callout warn"><b>Match not certain</b>${esc(b.ch_flag.charAt(0).toUpperCase() + b.ch_flag.slice(1))}. The record above may belong to a different company, or there may be none (sole traders aren't listed).</div>` : ""}
       </section>
@@ -742,11 +854,21 @@ function openBiz(n, from){
   $("drawer").setAttribute("aria-hidden","false"); document.body.style.overflow = "hidden";
   $("drawer").scrollTop = 0;
   $("dClose").onclick = closeBiz; $("dClose").focus();
+  let pick = (b.connection && b.connection.kind !== "local_director") ? b.connection.kind : "";
+  document.querySelectorAll("#tagSeg button").forEach(btn => btn.onclick = () => {
+    pick = btn.dataset.v;
+    document.querySelectorAll("#tagSeg button").forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+  });
+  $("tagSave").onclick = () => {
+    TAGS[b.id] = {kind: pick, note: $("tagNote").value.trim(), at: new Date().toISOString().slice(0,10)};
+    const ok = saveTags(); applyTag(b); setTopCut(); render(); drawKpis(); openBiz(b.n, lastFocus);
+    if (!ok) $("tagMsg").textContent = "Couldn't save in this browser; download the sponsor list now to keep it.";
+  };
   history.replaceState(null, "", `#business-${n}`);
 }
 function softCard(b){
   const s = b.soft || {};
-  const rows = ["community_affinity","brand_fit","csr_signal"].filter(k => s[k]).map(k => {
+  const rows = ["community_affinity","brand_fit","csr_signal","local_connection"].filter(k => s[k]).map(k => {
     const r = s[k];
     return `<div class="reading"><div class="top"><span class="k" style="font-weight:700">${esc(PART[k][0])}</span>
       <span class="bar" style="height:12px;background:#EEF0F2;border-radius:2px;position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:${Math.max(2, r.value*100)}%;background:var(--ink);opacity:${(.35 + .65*r.confidence).toFixed(2)};border-radius:0 3px 3px 0"></i></span>

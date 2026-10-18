@@ -56,6 +56,13 @@ working view; the club-facing front end is the website.
 
 ## Run it
 
+**Easiest: Google Colab.** Open `dumbarton_sponsor_colab.ipynb` in Colab, add your keys as
+Colab Secrets, and run the cells top to bottom. It runs on test data until you set
+`GO_LIVE = True`, shows what a live run will do first, and ends with a download of the
+website and sponsor list.
+
+Or locally:
+
 ```bash
 python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -128,6 +135,79 @@ Live keys (never commit them): `GOOGLE_PLACES_API_KEY`, `COMPANIES_HOUSE_API_KEY
 `ANTHROPIC_API_KEY`. `sponsor_scoring.score_business()` scores a real enriched
 record identically to a synthetic one — that's the seam.
 
+## Data checks
+
+The first real run (Oct 2026) linked many businesses to the wrong Companies House
+company (name-only matching), never recognised national chains, and kept results
+far outside the search radius. `data_checks.py` now guards all three, in the live
+pipeline and in `repair_published_data.py`:
+
+- **Location check on Companies House matches.** A name match must also agree on
+  place: same postcode district, or registered (or registered office) in Scotland.
+  Dissolved companies are skipped. Wrong-place matches are not linked and are flagged;
+  with no confirmed record, company age scores neutral rather than as a new firm.
+- **Chains and franchises** are caught by website domain and name (`chains:` in the
+  config) and classed `national_chain`.
+- **Sector sanity.** If the business's own name, Google type or website disagrees with
+  the matched company's SIC code, the name/type wins and the row is flagged.
+- **Distance is scored and filtered, not cut.** Discovery covers ~25 km (each search
+  runs per town so Glasgow can't crowd out Dumbarton); a 25 km ceiling removes noise.
+  Inside it, distance decays the score and the page has a distance filter. Permanently
+  closed businesses are dropped.
+
+To fix an already-published dataset without re-calling the APIs (it only removes or
+relabels data, never adds it):
+
+```bash
+python repair_published_data.py --src lab.html --out site
+```
+
+A fresh live run (`--real --api --llm`) is still better: it can find the *right*
+company where the old run picked the wrong one.
+
+## Local connections
+
+Distance stands in for "local", but some of the best prospects are further out and
+still tied to the town. A **recorded connection** counts as local presence: the
+proximity part scores `max(distance score, connection strength)`, so weights still
+sum to 100 and the profile says what lifted it. Three sources, all recorded facts:
+
+| Source | Strength | Where it comes from |
+|---|---:|---|
+| Club-recorded (e.g. current sponsor) | 1.0 | `connections.csv`: `match` (company number or business name), `kind`, `note` |
+| Warm path | 0.9 | `warm_intro` on the business |
+| Director based locally | 0.75 | Companies House officers with a service address in `local_districts` (count only; no names or addresses stored) |
+
+Kinds in `connections.csv`: `current_sponsor` (shown as a **Renewal**, hidden from the
+prospect list by default), `past_sponsor` (a **Win-back**), `warm_intro`, `club_recorded`,
+and `not_a_fit` (hidden). The file is seeded from the club's own 2026/27 commercial page
+and sponsor news.
+
+**Tagging from the page.** Every business profile has a *Club relationship* control
+(current sponsor / past sponsor / warm path / not a fit, plus a note). Tags re-score the
+list instantly and are saved in that browser. *Add a sponsor that isn't listed* records
+sponsors the search didn't find. The **Sponsor list** button downloads the merged
+`connections.csv`; drop it into the repo and re-run the pipeline to make the tags
+permanent and shared. (No server needed. For shared, live tagging across several people,
+the next step is a small Cloudflare Worker with a free D1/KV store.)
+
+**What to offer, at what price.** Each prospect's suggested approach now uses the club's
+real 2026/27 packages and prices (config `offers`), sized to the business: a micro firm
+is pitched a £100–£200 player sponsorship, a medium one a £1,500 board or £3,000 kit slot.
+Update the prices each season.
+
+**Finding firms like the club's sponsors.** Most actual sponsors (print, signage, rail
+engineering, gas, tools, tiling) were never searched for. A new
+`industrial_b2b_services` sector and six new seed queries cover them. The AI step also
+reads a fourth, **unscored** judgment, `local_connection` (does the website name
+Dumbarton FC, a team it sponsors, or similar?). Strong evidence appears on the lab page
+as a lead to confirm; once a person adds it to `connections.csv`, it counts.
+
+Extra signals now collected on a live run: Google rating and review count (shown and in
+the CSV, not scored yet), and local directors (above).
+
+The Claude model is set by `SPONSOR_LLM_MODEL` (default `claude-haiku-5-5`).
+
 ## Deploying
 
 Deploy `site/` exactly like Sons Scouting: a Cloudflare Worker serving the folder,
@@ -161,6 +241,9 @@ whichever repo holds `site/` private. `sponsor.db` itself is never committed.
 | `ingest_places.py` | Google Places candidate discovery (+ offline fixture) |
 | `ingest_companies_house.py` | Companies House enrichment (+ offline fixture) |
 | `fetch_website.py` | Homepage text fetch for the soft-feature layer |
+| `data_checks.py` | Location check on Companies House matches, chain detection, sector sanity, local connections |
+| `connections.csv` | Club-maintained local connections (current sponsors, known supporters) |
+| `repair_published_data.py` | Applies the data checks to an already-published dataset |
 | `sponsor_db.py` | SQLite store with the walled human layer |
 | `sponsor_pipeline.py` | Orchestrator — builds `sponsor.db` end to end |
 | `sponsor_site.html` | The website design (data is injected at export) |

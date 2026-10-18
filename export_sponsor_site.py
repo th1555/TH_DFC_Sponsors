@@ -27,12 +27,14 @@ Deps: pandas, pyyaml (+ sponsor_db.py, sponsor_config.yaml, a built sponsor.db)
 from __future__ import annotations
 import argparse
 import json
+import math
 import os
 import shutil
 import sqlite3
 import pandas as pd
 import yaml
 import sponsor_db as db
+import data_checks as dc
 
 TEMPLATE = "sponsor_site.html"
 MARK = "/*__DATA__*/null"
@@ -41,6 +43,7 @@ SOFT = ["community_affinity", "brand_fit", "csr_signal"]
 
 SECTOR_LABELS = {
     "transport_coaches_haulage": "Coaches & haulage",
+    "industrial_b2b_services": "Industry & business services",
     "building_construction_trades": "Building & trades",
     "pubs_bars_hospitality": "Pubs & hospitality",
     "motor_dealers_garages": "Motor dealers & garages",
@@ -67,6 +70,11 @@ def clean(v):
     except (TypeError, ValueError):
         pass
     return v.item() if hasattr(v, "item") else v
+
+
+def as_int(v):
+    v = clean(v)
+    return int(v) if v is not None else None
 
 
 def approach(tier: str) -> dict:
@@ -100,7 +108,14 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
         # shown elsewhere (tag, size column) and aren't warnings
         flags = [f.strip() for f in str(r.flags or "").split(";")
                  if f.strip() and f.strip() != "-"
-                 and not f.strip().startswith(("WARM PATH", "micro business"))]
+                 and not f.strip().startswith(("WARM PATH", "micro business"))
+                 # AI leads are judgments: lab page only
+                 and (lab or not f.strip().startswith("possible connection"))]
+        # did a recorded connection, rather than distance, set the proximity part?
+        dist_pts = (math.exp(-float(r.distance_km) / cfg["proximity"]["decay_km"]) * w["proximity"]
+                    if pd.notna(r.distance_km) else 0.0)
+        via = (clean(r.connection_note)
+               if contrib.get("proximity", 0) > dist_pts + 0.01 and clean(r.connection_note) else None)
         rec = dict(
             n=i, id=r.business_id, name=clean(r.name), sector=clean(r.sector),
             sector_label=SECTOR_LABELS.get(r.sector, r.sector),
@@ -111,7 +126,15 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
             postcode=clean(r.postcode), ch_flag=clean(r.ch_flag),
             warm_intro=clean(r.warm_intro), approach=approach(r.tier), flags=flags,
             local_fit=round(local_fit, 1),
-            parts={k: dict(points=round(contrib.get(k, 0), 2), weight=w[k]) for k in HARD},
+            parts={k: dict(points=round(contrib.get(k, 0), 2), weight=w[k],
+                           **({"via": via} if k == "proximity" and via else {}))
+                   for k in HARD},
+            connection=(dict(kind=clean(r.connection_kind), note=clean(r.connection_note))
+                        if clean(r.connection_kind) else None),
+            google_rating=clean(getattr(r, "google_rating", None)),
+            google_reviews=as_int(getattr(r, "google_reviews", None)),
+            directors_local=as_int(getattr(r, "directors_local", None)),
+            directors_total=as_int(getattr(r, "directors_total", None)),
             status=clean(r.status) or "new", owner=clean(r.owner), notes=clean(r.notes),
             status_at=clean(r.updated_at),
         )
@@ -120,6 +143,18 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
             rec["soft_parts"] = {k: dict(points=round(contrib.get(k, 0), 2), weight=w[k]) for k in SOFT}
             rec["soft"] = soft_by.get(r.business_id, {})
         rows.append(rec)
+
+    # rows of connections.csv that matched no business on the page (most real
+    # sponsors aren't in the Places search): carried so the in-page download
+    # of the sponsor list never loses them
+    table = dc.load_connections(cfg)
+    unmatched = []
+    for row in table:
+        key = row["match"].strip()
+        hit = any((str(b["company_number"] or "").upper() == key.upper())
+                  or dc._same_business(key, b["name"]) for b in rows)
+        if not hit:
+            unmatched.append(dict(match=key, kind=row.get("kind", ""), note=row.get("note", "")))
 
     sources = set(biz.source.dropna())
     models = sorted(set(sf.model.dropna())) if lab else []
@@ -136,6 +171,10 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
         sectors=[dict(key=k, label=SECTOR_LABELS.get(k, k), propensity=v)
                  for k, v in cfg["sector_propensity"].items() if k != "unknown"],
         nav=nav, businesses=rows,
+        connection_strength=(cfg.get("connections") or {}).get("strength", {}),
+        decay_km=cfg["proximity"]["decay_km"],
+        connections_unmatched=unmatched,
+        offers_source=(cfg.get("offers") or {}).get("source"),
     )
 
 

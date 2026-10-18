@@ -98,19 +98,59 @@ def _auth(api_key=None):
     return (api_key, "")
 
 
-def search_companies_api(query, api_key=None, n=20):
+# Companies House allows roughly 600 requests per 5 minutes per key. A real run
+# makes ~3 calls per business (search, profile, officers), so pace calls and wait
+# out a 429 instead of crashing half-way through a long Colab run.
+MIN_INTERVAL_S = 0.55
+_last_call = [0.0]
+
+
+def _get(path, api_key=None, params=None, tries=5):
+    import time
     import requests
-    r = requests.get(f"{BASE}/search/companies", auth=_auth(api_key),
-                     params={"q": query, "items_per_page": n}, timeout=30)
+    for attempt in range(tries):
+        wait = MIN_INTERVAL_S - (time.monotonic() - _last_call[0])
+        if wait > 0:
+            time.sleep(wait)
+        _last_call[0] = time.monotonic()
+        r = requests.get(f"{BASE}{path}", auth=_auth(api_key), params=params, timeout=30)
+        if r.status_code == 429 or r.status_code >= 500:
+            pause = int(r.headers.get("Retry-After") or 0) or min(60, 5 * 2 ** attempt)
+            print(f"  [companies house] {r.status_code}, waiting {pause}s and retrying")
+            time.sleep(pause)
+            continue
+        if r.status_code == 404:
+            return {}
+        r.raise_for_status()
+        return r.json()
     r.raise_for_status()
-    return r.json().get("items", [])
+    return {}
+
+
+def search_companies_api(query, api_key=None, n=20):
+    return _get("/search/companies", api_key, {"q": query, "items_per_page": n}).get("items", [])
 
 
 def get_profile_api(company_number, api_key=None):
-    import requests
-    r = requests.get(f"{BASE}/company/{company_number}", auth=_auth(api_key), timeout=30)
-    r.raise_for_status()
-    return r.json()
+    return _get(f"/company/{company_number}", api_key)
+
+
+def get_officers_api(company_number, api_key=None):
+    return _get(f"/company/{company_number}/officers", api_key, {"items_per_page": 50}).get("items", [])
+
+
+def local_director_count(officers, districts) -> tuple[int, int]:
+    """(directors based in a local postcode district, active directors).
+    Uses the officer's service address; keeps only the count, never the
+    name or address."""
+    import data_checks as dc
+    local = {d.upper() for d in districts}
+    active = [o for o in officers or []
+              if not o.get("resigned_on")
+              and "director" in str(o.get("officer_role") or "").lower()]
+    n_local = sum(1 for o in active
+                  if dc.outward((o.get("address") or {}).get("postal_code")) in local)
+    return n_local, len(active)
 
 
 # ---------------------------------------------------------------------------
@@ -141,11 +181,26 @@ _FIX_PROFILES = {
         company_status="active", date_of_creation="2021-01-18", sic_codes=["47910"],
         accounts={"last_accounts": {"type": "medium"}},
         registered_office_address={"postal_code": "G81 1AA", "locality": "Clydebank"}),
+    # the Oct 2026 failure, reproduced: a same-named company registered in Wales
+    "castle garage": dict(company_number="00205581", company_name="CASTLE GARAGE LIMITED",
+        company_status="active", date_of_creation="1925-01-01", sic_codes=["45200"],
+        accounts={"last_accounts": {"type": "small"}},
+        registered_office_address={"postal_code": "SA20 0AA", "locality": "Llandovery"}),
     "dormant holdings": dict(company_number="SC000007", company_name="DORMANT HOLDINGS LTD",
         company_status="active", date_of_creation="2012-03-30", sic_codes=["99999"],
         accounts={"last_accounts": {"type": "dormant"}},
         registered_office_address={"postal_code": "G82 4AA", "locality": "Dumbarton"}),
 }
+
+
+_FIX_OFFICERS = {
+    "SC000001": [{"officer_role": "director", "address": {"postal_code": "G82 2AB"}},
+                 {"officer_role": "director", "address": {"postal_code": "G2 7DA"}}],
+}
+
+
+def get_officers_fixture(company_number, **_):
+    return _FIX_OFFICERS.get(company_number, [])
 
 
 def search_companies_fixture(query, **_):
@@ -155,7 +210,8 @@ def search_companies_fixture(query, **_):
         if q and (q in key or key in q or name_score(query, prof["company_name"]) > 0.4):
             items.append({"company_number": prof["company_number"],
                           "title": prof["company_name"],
-                          "company_status": prof["company_status"]})
+                          "company_status": prof["company_status"],
+                          "address": prof.get("registered_office_address") or {}})
     return items
 
 
@@ -169,28 +225,65 @@ def get_profile_fixture(company_number, **_):
 # ---------------------------------------------------------------------------
 # ENRICH — name -> best CH match -> parsed fields (+ a match flag)
 # ---------------------------------------------------------------------------
-def enrich(name, cfg, mode="fixture", api_key=None, today=None) -> dict:
+def enrich(name, cfg, mode="fixture", api_key=None, today=None, place_postcode=None) -> dict:
+    """Best Companies House match for a business found on Google Places.
+
+    A candidate is accepted only if ALL of these hold:
+      * the company is active (a dissolved or liquidated company can't be the
+        business trading at that address today);
+      * its name clears `match_min_score`;
+      * it agrees on place with the business (data_checks.location_ok): same
+        postcode district, or registered in Scotland / office in Scotland.
+    Among the candidates that pass, the best name match wins. So a similarly
+    named company in England can no longer beat the right one in Dumbarton, and
+    if only the wrong-place one exists, nothing is linked and the row is flagged.
+    """
+    import data_checks as dc
     search = search_companies_fixture if mode == "fixture" else search_companies_api
     get_profile = get_profile_fixture if mode == "fixture" else get_profile_api
     floor = cfg["ingest"]["companies_house"]["match_min_score"]
 
     items = search(name, api_key=api_key)
-    best, best_score = None, 0.0
-    for it in items:
-        sc = name_score(name, it.get("title", ""))
-        if sc > best_score:
-            best, best_score = it, sc
+    scored = sorted(((name_score(name, it.get("title", "")), it) for it in items),
+                    key=lambda t: -t[0])
+    best_name_score = scored[0][0] if scored else 0.0
 
-    if not best or best_score < floor:
-        return {"sector": "unknown", "company_age": 0, "size_band": "unknown",
-                "accounts_dormant": False, "postcode": None, "company_number": None,
-                "ch_match_score": round(best_score, 2),
-                "ch_flag": "unmatched — no confident Companies House match"}
+    rejected_place = None
+    for sc, it in scored:
+        if sc < floor:
+            break
+        if str(it.get("company_status") or "active").lower() != "active":
+            continue
+        item_pc = (it.get("address") or {}).get("postal_code")
+        if item_pc and not dc.location_ok(place_postcode, item_pc, it.get("company_number")):
+            rejected_place = rejected_place or it
+            continue
+        parsed = parse_profile(get_profile(it["company_number"], api_key=api_key), today)
+        # the search snippet can be stale: re-check against the full profile
+        if not dc.location_ok(place_postcode, parsed["postcode"], parsed["company_number"]):
+            rejected_place = rejected_place or it
+            continue
+        parsed["ch_match_score"] = round(sc, 2)
+        parsed["company_known"] = True
+        try:
+            get_officers = get_officers_fixture if mode == "fixture" else get_officers_api
+            districts = (cfg.get("connections") or {}).get("local_districts", [])
+            parsed["directors_local"], parsed["directors_total"] = local_director_count(
+                get_officers(parsed["company_number"], api_key=api_key), districts)
+        except Exception as e:                      # officers are a bonus, never fatal
+            print(f"  [companies house] officers for {parsed['company_number']} failed: {e}")
+        parsed["ch_flag"] = None if sc >= 0.8 else "weak Companies House match — verify"
+        return parsed
 
-    parsed = parse_profile(get_profile(best["company_number"], api_key=api_key), today)
-    parsed["ch_match_score"] = round(best_score, 2)
-    parsed["ch_flag"] = None if best_score >= 0.8 else "weak Companies House match — verify"
-    return parsed
+    if rejected_place:
+        flag = (f"name matched company {rejected_place.get('company_number')}, registered "
+                f"outside Scotland — not linked, verify")
+    else:
+        flag = "unmatched — no confident Companies House match"
+    return {"sector": "unknown", "company_age": 0, "size_band": "unknown",
+            "accounts_dormant": False, "postcode": None, "company_number": None,
+            "company_known": False, "ch_match_score": round(best_name_score, 2),
+            "ch_flag": flag}
 
 
 # ---------------------------------------------------------------------------
@@ -216,3 +309,12 @@ if __name__ == "__main__":
     assert p["company_age"] == 38, p["company_age"]       # 1987 -> 2026
     assert p["size_band"] == "small"
     print("\nparse_profile sanity: Marbill -> transport/coaches, age 38, small ✓")
+
+    # location check: the real Oct 2026 failure must no longer link
+    r = enrich("Castle Garage", cfg, mode="fixture", today=TODAY, place_postcode="G82 1RQ")
+    assert r["company_number"] is None and "outside Scotland" in r["ch_flag"], r
+    r = enrich("Marbill Coaches", cfg, mode="fixture", today=TODAY, place_postcode="G82 1AB")
+    assert r["company_number"] == "SC000001", r
+    assert (r["directors_local"], r["directors_total"]) == (1, 2), r
+    print("location check: Welsh 'Castle Garage' rejected for a Dumbarton garage; "
+          "local Marbill still linked ✓")

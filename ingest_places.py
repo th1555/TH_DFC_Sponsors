@@ -21,7 +21,9 @@ import math
 
 TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 FIELD_MASK = ("places.id,places.displayName,places.formattedAddress,"
-              "places.location,places.types,places.businessStatus,places.websiteUri")
+              "places.location,places.types,places.businessStatus,places.websiteUri,"
+              "places.rating,places.userRatingCount")
+# rating / userRatingCount may bill at a higher Places SKU than the basic fields
 
 
 def haversine_km(lat1, lng1, lat2, lng2) -> float:
@@ -61,6 +63,8 @@ def _parse_place(p: dict) -> dict:
         "types": p.get("types") or [],
         "website": p.get("websiteUri"),
         "business_status": p.get("businessStatus"),
+        "google_rating": p.get("rating"),
+        "google_reviews": p.get("userRatingCount"),
     }
 
 
@@ -73,7 +77,8 @@ _FIX_PLACES = [
          websiteUri="https://marbillcoaches.example", businessStatus="OPERATIONAL"),
     dict(id="p2", displayName={"text": "The Anchor Inn"}, formattedAddress="Dumbarton G82 1QS",
          location={"latitude": 55.9372, "longitude": -4.5631}, types=["bar", "restaurant"],
-         websiteUri="https://anchorinn.example", businessStatus="OPERATIONAL"),
+         websiteUri="https://anchorinn.example", businessStatus="OPERATIONAL",
+         rating=4.5, userRatingCount=212),
     dict(id="p3", displayName={"text": "Bonhill Funeralcare"}, formattedAddress="Alexandria G83 9JX",
          location={"latitude": 55.9780, "longitude": -4.5830}, types=["funeral_home"],
          websiteUri="https://bonhillfuneralcare.example", businessStatus="OPERATIONAL"),
@@ -117,10 +122,14 @@ def discover(cfg, mode="fixture", api_key=None) -> list:
     ing = cfg["ingest"]
     lat, lng = ing["stadium"]["lat"], ing["stadium"]["lng"]
     radius, n = ing["places"]["radius_m"], ing["places"]["max_per_query"]
+    # Google treats the radius as a preference, not a limit, so enforce it here
+    max_km = ing["places"].get("max_distance_km")
     search = text_search_fixture if mode == "fixture" else text_search_api
 
     seen, out = set(), []
-    for q in ing["places"]["seed_queries"]:
+    towns = ing["places"].get("towns") or [None]
+    queries = [f"{q} in {t}" if t else q for q in ing["places"]["seed_queries"] for t in towns]
+    for q in queries:
         try:
             for raw in search(q, lat, lng, radius, n, api_key=api_key):
                 p = _parse_place(raw)
@@ -129,6 +138,10 @@ def discover(cfg, mode="fixture", api_key=None) -> list:
                 seen.add(p["place_id"])
                 if p["lat"] is not None:
                     p["distance_km"] = round(haversine_km(lat, lng, p["lat"], p["lng"]), 2)
+                if max_km is not None and p.get("distance_km", 0) > max_km:
+                    continue                          # outside the catchment
+                if p.get("business_status") == "CLOSED_PERMANENTLY":
+                    continue                          # no longer trading
                 out.append(p)
         except Exception as e:
             print(f"  [places] query {q!r} failed: {e}")
@@ -146,6 +159,7 @@ if __name__ == "__main__":
               f"{'web' if p['website'] else 'no-web':<7} {','.join(p['types'][:2])}")
     # distance sanity: the two closest should be in-town, ByteBargains far
     d = {p["name"]: p.get("distance_km") for p in cands}
+    far = d.get('ByteBargains Online')
     print(f"\ndistance check: Anchor Inn {d.get('The Anchor Inn')}km (near), "
-          f"ByteBargains {d.get('ByteBargains Online')}km (far) — dedupe kept "
-          f"{len(cands)} of {len(_FIX_PLACES)} raw rows")
+          f"ByteBargains {'dropped (outside max_distance_km)' if far is None else str(far) + 'km'}"
+          f" — kept {len(cands)} of {len(_FIX_PLACES)} raw rows")
