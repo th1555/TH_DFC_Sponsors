@@ -36,6 +36,8 @@ import ingest_places as places
 import ingest_companies_house as ch
 import fetch_website as web
 import data_checks as dc
+import ingest_accounts as ia
+import revenue_estimate as rev
 
 RNG = np.random.default_rng(7)
 
@@ -241,6 +243,7 @@ def ingest_real(cfg, ingest_mode="fixture"):
             website=p.get("website"), address=p.get("address"),
             postcode=facts.get("postcode"), company_known=facts.get("company_known", False),
             directors_local=facts.get("directors_local"), directors_total=facts.get("directors_total"),
+            sic_codes=facts.get("sic_codes"),
             google_rating=p.get("google_rating"), google_reviews=p.get("google_reviews"))
         # chains, and the business's own name/Google type over a mismatched SIC code
         cands.append(dc.reconcile(rec, cfg, place_types=p.get("types")))
@@ -250,7 +253,51 @@ def ingest_real(cfg, ingest_mode="fixture"):
     return cands
 
 
-def run(mode="stub", source="synthetic", ingest_mode="fixture"):
+def refresh_accounts(conn, ingest_mode="fixture", fetch=True):
+    """Employees and turnover from filed accounts, then the bands shown on the
+    page. fetch=False reuses accounts already in the store (no API calls) and
+    just recomputes the bands, e.g. after the ONS ratio table is updated."""
+    biz = conn.execute("SELECT business_id, company_number, sic_codes FROM businesses").fetchall()
+    if fetch:
+        # stores built before industry codes were kept: fill them from the profile
+        missing = [(bid, n) for bid, n, sic in biz if n and not sic]
+        if missing:
+            print(f"  industry codes: fetching {len(missing)} company profiles (older store)")
+            get_profile = ch.get_profile_fixture if ingest_mode == "fixture" else ch.get_profile_api
+            for bid, n in missing:
+                try:
+                    codes = ",".join(str(c) for c in (get_profile(n).get("sic_codes") or []))
+                except Exception as e:
+                    print(f"  [companies house] profile {n}: {e}")
+                    continue
+                conn.execute("UPDATE businesses SET sic_codes=? WHERE business_id=?", (codes or None, bid))
+            conn.commit()
+            biz = conn.execute("SELECT business_id, company_number, sic_codes FROM businesses").fetchall()
+        nums = [n for _, n, _ in biz if n]
+        print(f"  accounts: reading the latest filed accounts for {len(set(nums))} companies...")
+        db.upsert_accounts(conn, ia.read_many(nums, mode=ingest_mode))
+    acct = {r[0]: dict(zip(["company_number", "status", "employees", "turnover", "period_end",
+                            "filed_on", "accounts_type", "source_url"], r))
+            for r in conn.execute("SELECT company_number, status, employees, turnover, period_end, "
+                                  "filed_on, accounts_type, source_url FROM company_accounts")}
+    ratios = rev.load_ratios()
+    if not ratios:
+        print("  revenue: no ONS ratio table yet (ons_turnover_per_employee.csv), so reported "
+              "turnover only, no estimates")
+    rows = []
+    for bid, num, sic in biz:
+        a = acct.get(num) if num else None
+        rows.append(dict(business_id=bid, **rev.assess(a, (sic or "").split(","), ratios)))
+    db.save_estimates(conn, rows)
+    n = len(rows)
+    count = lambda k, v: sum(1 for r in rows if r[k] == v)
+    print(f"  employees: {count('employees_basis', 'reported')}/{n} reported  |  revenue: "
+          f"{count('revenue_basis', 'reported')} reported, {count('revenue_basis', 'estimate')} "
+          f"estimated, {count('revenue_basis', 'not_available')} not available")
+    return rows
+
+
+def run(mode="stub", source="synthetic", ingest_mode="fixture", accounts=False):
     cfg = ss.load_config()
     conn = db.connect(); db.init_db(conn)
     model = sf.DEFAULT_MODEL if mode == "llm" else "stub-keyword-v1"
@@ -283,6 +330,8 @@ def run(mode="stub", source="synthetic", ingest_mode="fixture"):
 
     db.upsert_businesses(conn, biz_records)                  # step 3
     db.save_scores(conn, score_rows, config_version="v1")
+    if accounts:                                             # step 4: employees + revenue
+        refresh_accounts(conn, ingest_mode)
 
     # Demo only: seed two statuses so the outreach column isn't empty. Never on
     # real data, and never once anyone has recorded a status: on a live run this
@@ -303,6 +352,16 @@ if __name__ == "__main__":
     source = "real" if "--real" in sys.argv else "synthetic"
     # --api uses the LIVE Places/Companies House APIs; default is offline fixtures
     ingest_mode = "api" if "--api" in sys.argv else "fixture"
+    # --accounts adds employees + revenue from filed accounts to a full run.
+    # --accounts-only does just that step against an existing sponsor.db, so the
+    # Places search and AI readings aren't paid for again.
+    accounts = "--accounts" in sys.argv
+    if "--accounts-only" in sys.argv:
+        conn = db.connect(); db.init_db(conn)
+        if not conn.execute("SELECT COUNT(*) FROM businesses").fetchone()[0]:
+            sys.exit("sponsor.db has no businesses yet: run the full pipeline first.")
+        refresh_accounts(conn, ingest_mode, fetch="--no-fetch" not in sys.argv)
+        sys.exit(0)
     print("=" * 74)
     print(f"SPONSOR PIPELINE  —  build the store end to end")
     print(f"  source: {source} ({ingest_mode})   |   soft features: {mode}")
@@ -311,7 +370,7 @@ if __name__ == "__main__":
         print("no ANTHROPIC_API_KEY — using offline stub for soft features.\n")
         mode = "stub"
 
-    conn = run(mode, source=source, ingest_mode=ingest_mode)
+    conn = run(mode, source=source, ingest_mode=ingest_mode, accounts=accounts)
     q = db.get_queue(conn)
     print(f"\nbuilt sponsor.db  —  {len(q)} businesses scored & stored\n")
     print("TOP OF THE STORED QUEUE (what the app opens on):\n")

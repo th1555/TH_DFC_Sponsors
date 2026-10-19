@@ -208,6 +208,30 @@ the CSV, not scored yet), and local directors (above).
 
 The Claude model is set by `SPONSOR_LLM_MODEL` (default `claude-haiku-5-5`).
 
+## Employees and revenue
+
+Read from each linked company's **filed accounts** (free, same Companies House key):
+
+- **Employees**: the average headcount the accounts report, shown as a band
+  (1–9, 10–49, 50–249, 250+). A reported 0 shows as *Directors only*.
+- **Revenue**: the **reported** turnover where the accounts include it (rare for
+  small firms). Otherwise an **estimate**: reported employees × the ONS average
+  turnover per employee for the company's industry and size. Every estimate carries
+  its working, e.g. *"8 employees × £X for transport businesses with 0–9 employees
+  (industry code 49390; ONS ABS, 2024) = about £Y, so £250k–£1m"*. Shown as bands.
+- **Not available** otherwise, with the reason: no company record (sole traders,
+  partnerships), paper-only accounts, dormant, or no headcount. Never a guess.
+
+```bash
+python sponsor_pipeline.py --real --api --llm --accounts   # full run incl. accounts
+python sponsor_pipeline.py --accounts-only --api           # add them to an existing sponsor.db
+python sponsor_pipeline.py --accounts-only --no-fetch      # just recompute the bands
+```
+
+The ratio table is `ons_turnover_per_employee.csv`, built from the ONS Annual
+Business Survey size-band file by `build_ons_ratios.py`. It's data, not code, so it
+can be checked by hand and updated each year. Without it, only reported turnover shows.
+
 ## Deploying
 
 Deploy `site/` exactly like Sons Scouting: a Cloudflare Worker serving the folder,
@@ -249,6 +273,8 @@ whichever repo holds `site/` private. `sponsor.db` itself is never committed.
 | `sponsor_site.html` | The website design (data is injected at export) |
 | `export_sponsor_site.py` | Builds `site/index.html` (shipped) and `site/lab.html` (prototype) |
 | `outreach.py` | Records outreach status and notes (the walled human table) |
+| `ingest_accounts.py` | Employees and turnover from filed accounts (machine-readable iXBRL) |
+| `revenue_estimate.py` | Employee/revenue bands; reported, else estimate with working, else not available |
 | `sponsor_app.py` | Streamlit working view, local use |
 
 *A decision-support prototype. It ranks and prepares; the club decides.*

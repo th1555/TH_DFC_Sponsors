@@ -7,3 +7,4 @@ numpy>=1.26          # sponsor_scoring.py / sponsor_pipeline.py — synthetic da
 pyyaml>=6.0          # loads sponsor_config.yaml
 requests>=2.31       # soft_features.py --llm — the real Anthropic call only
 matplotlib>=3.8      # sponsor_scoring.py — the standalone ranked-queue chart only
+lxml>=4.9           # ingest_accounts.py — reads the machine-readable accounts

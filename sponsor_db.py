@@ -12,6 +12,9 @@ One SQLite file, same three principles as the recruitment store (db.py):
 
 Table roles:
   businesses        the enriched record (Places + Companies House + website text)
+  company_accounts  employees / turnover read from filed accounts, per company
+  revenue_estimates the employee and revenue bands shown on the page, with working
+                    (RECOMPUTABLE from company_accounts + the ONS ratio table)
   soft_features     the LLM's 3 judgments, one row each, WITH provenance
   business_scores   the deterministic fit score — RECOMPUTABLE (rebuilt on re-run)
   outreach_status   THE HUMAN WALL — status / owner / notes, written only by people
@@ -68,6 +71,17 @@ CREATE TABLE IF NOT EXISTS business_scores (
   business_id TEXT PRIMARY KEY, fit_score REAL, top_driver TEXT,
   contrib_json TEXT, tier TEXT, flags TEXT, config_version TEXT, computed_at TEXT
 );
+CREATE TABLE IF NOT EXISTS company_accounts (
+  company_number TEXT PRIMARY KEY, status TEXT, employees INTEGER, turnover INTEGER,
+  period_end TEXT, filed_on TEXT, accounts_type TEXT, source_url TEXT, fetched_at TEXT
+);
+CREATE TABLE IF NOT EXISTS revenue_estimates (
+  business_id TEXT PRIMARY KEY, employees INTEGER, employees_band TEXT,
+  employees_basis TEXT, employees_note TEXT, revenue_basis TEXT, revenue_band TEXT,
+  revenue_value INTEGER, revenue_working TEXT, est_section TEXT, est_ratio INTEGER,
+  est_ratio_source TEXT, accounts_period_end TEXT, accounts_source TEXT,
+  method_version TEXT, computed_at TEXT
+);
 CREATE TABLE IF NOT EXISTS outreach_status (
   business_id TEXT PRIMARY KEY, status TEXT, owner TEXT, notes TEXT, updated_at TEXT
 );
@@ -82,7 +96,9 @@ EXTRA_BUSINESS_COLS = {"company_number": "TEXT", "website": "TEXT",
                        "connection_kind": "TEXT", "connection_note": "TEXT",
                        "connection_strength": "REAL", "directors_local": "INTEGER",
                        "directors_total": "INTEGER", "google_rating": "REAL",
-                       "google_reviews": "INTEGER", "company_known": "INTEGER"}
+                       "google_reviews": "INTEGER", "company_known": "INTEGER",
+                       # v3: raw industry codes, for the revenue estimate
+                       "sic_codes": "TEXT"}
 
 
 def init_db(conn):
@@ -102,7 +118,8 @@ def upsert_businesses(conn, records):
             "accounts_dormant", "website_text", "warm_intro", "source", "fetched_at",
             "company_number", "website", "address", "postcode", "ch_flag",
             "connection_kind", "connection_note", "connection_strength", "directors_local",
-            "directors_total", "google_rating", "google_reviews", "company_known"]
+            "directors_total", "google_rating", "google_reviews", "company_known",
+            "sic_codes"]
     rows = [(r["business_id"], r.get("name"), r.get("sector"),
              float(r.get("distance_km", 0) or 0), int(r.get("company_age", 0) or 0),
              r.get("size_band"), int(bool(r.get("accounts_dormant"))),
@@ -113,11 +130,38 @@ def upsert_businesses(conn, records):
              r.get("connection_kind"), r.get("connection_note"), r.get("connection_strength"),
              r.get("directors_local"), r.get("directors_total"), r.get("google_rating"),
              r.get("google_reviews"),
-             int(bool(r.get("company_known", bool(r.get("company_number")))))) for r in records]
+             int(bool(r.get("company_known", bool(r.get("company_number"))))),
+             ",".join(str(c) for c in (r.get("sic_codes") or [])) or None) for r in records]
     updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c != "business_id")
     conn.executemany(
         f"INSERT INTO businesses ({','.join(cols)}) VALUES ({','.join('?' * len(cols))}) "
         f"ON CONFLICT(business_id) DO UPDATE SET {updates}", rows)
+    conn.commit()
+
+
+def upsert_accounts(conn, rows):
+    """Recorded figures from filed accounts (ingest_accounts.read_accounts rows)."""
+    cols = ["company_number", "status", "employees", "turnover", "period_end",
+            "filed_on", "accounts_type", "source_url", "fetched_at"]
+    data = [tuple(r.get(c) for c in cols[:-1]) + (now(),) for r in rows if r.get("company_number")]
+    updates = ", ".join(f"{c}=excluded.{c}" for c in cols[1:])
+    conn.executemany(
+        f"INSERT INTO company_accounts ({','.join(cols)}) VALUES ({','.join('?' * len(cols))}) "
+        f"ON CONFLICT(company_number) DO UPDATE SET {updates}", data)
+    conn.commit()
+
+
+def save_estimates(conn, rows):
+    """The bands shown on the page. Disposable: rebuilt from accounts + ratios."""
+    cols = ["business_id", "employees", "employees_band", "employees_basis", "employees_note",
+            "revenue_basis", "revenue_band", "revenue_value", "revenue_working", "est_section",
+            "est_ratio", "est_ratio_source", "accounts_period_end", "accounts_source",
+            "method_version"]
+    conn.execute("DELETE FROM revenue_estimates")
+    conn.executemany(
+        f"INSERT INTO revenue_estimates ({','.join(cols)},computed_at) "
+        f"VALUES ({','.join('?' * (len(cols) + 1))})",
+        [tuple(r.get(c) for c in cols) + (now(),) for r in rows])
     conn.commit()
 
 

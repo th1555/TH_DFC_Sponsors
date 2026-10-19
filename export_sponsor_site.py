@@ -91,8 +91,10 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
     sc = pd.read_sql("SELECT * FROM business_scores", conn)
     os_ = pd.read_sql("SELECT * FROM outreach_status", conn)
     sf = pd.read_sql("SELECT * FROM soft_features", conn)
+    est = pd.read_sql("SELECT * FROM revenue_estimates", conn).drop(columns=["computed_at"])
     df = (sc.merge(biz, on="business_id", how="left")
-            .merge(os_, on="business_id", how="left"))
+            .merge(os_, on="business_id", how="left")
+            .merge(est.rename(columns={"employees": "est_employees"}), on="business_id", how="left"))
 
     soft_by = {}
     for r in sf.itertuples():
@@ -137,6 +139,18 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
             directors_total=as_int(getattr(r, "directors_total", None)),
             status=clean(r.status) or "new", owner=clean(r.owner), notes=clean(r.notes),
             status_at=clean(r.updated_at),
+            # employees + revenue: recorded where filed, else a labelled estimate
+            # with its working, else not available (never a guess)
+            size=dict(
+                employees=as_int(r.est_employees), employees_band=clean(r.employees_band),
+                employees_basis=clean(r.employees_basis) or "not_available",
+                employees_note=clean(r.employees_note) or "Not read yet",
+                revenue_basis=clean(r.revenue_basis) or "not_available",
+                revenue_band=clean(r.revenue_band), revenue_value=as_int(r.revenue_value),
+                revenue_working=clean(r.revenue_working),
+                est_ratio=as_int(r.est_ratio), est_ratio_source=clean(r.est_ratio_source),
+                accounts_period_end=clean(r.accounts_period_end),
+                accounts_source=clean(r.accounts_source)),
         )
         if lab:  # judgments: only on the prototype page
             rec["fit"] = round(float(r.fit_score), 1)
