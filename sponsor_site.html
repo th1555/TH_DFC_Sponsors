@@ -233,6 +233,7 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
 .src.rep{background:#E3EFE6;color:#1D5130}
 .src.est{background:#FFF3C4;color:#5E4500;box-shadow:inset 0 0 0 1px #E8CF73}
 .src.ai{background:#E6EAF5;color:#283C74}
+.src.hand{background:#F1E9F5;color:#5B2A6E}
 .src.lead{background:#fff;color:#8A4B00;box-shadow:inset 0 0 0 1px #E0A060}
 .src.na{background:#EEF0F2;color:#5B636B}
 .srckey{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:0 0 18px;font-size:14px;color:var(--muted)}
@@ -240,6 +241,9 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
 .srckey span{display:inline-flex;gap:6px;align-items:center}
 .score i s.ai{background:repeating-linear-gradient(45deg,#9AA2A9 0 3px,#C5CBD0 3px 5px);border-radius:0 2px 2px 0}
 .score i s.rec{border-radius:0}
+.score i s.hand{background:#9C7BAA;border-radius:0}
+.pb .bar i.hand{background:#9C7BAA}
+.lg.hand .tr i{background:#9C7BAA}
 .est-tag{font-size:11px;font-weight:700;color:#5E4500;background:#FFF3C4;border-radius:3px;padding:0 4px;margin-left:5px;vertical-align:1px}
 .working{background:var(--bg);border-radius:6px;padding:10px 14px;margin:10px 0 0;font-size:14.5px}
 .working b{display:block;color:var(--ink);margin-bottom:2px}
@@ -445,10 +449,10 @@ table.ons th{font-size:12.5px;color:var(--muted)}
     </div>
     <div style="display:grid;gap:20px;align-content:start">
     <section class="card">
-      <h2>How sectors compare</h2>
-      <p style="font-size:14.5px;color:var(--muted)">How often each kind of business sponsors a club like Dumbarton, on a 0 to 1 scale. The line marks the middle.</p>
+      <h2>Sector ratings <span class="src hand" style="vertical-align:4px">Hand-set</span></h2>
+      <p style="font-size:14.5px;color:var(--muted)">Our rating of how likely each kind of business is to back a town club like Dumbarton, on a 0 to 1 scale. Set by hand from how lower-league clubs are usually sponsored, not measured. The line marks the middle.</p>
       <div id="sectorBars"></div>
-      <p class="hint" style="margin-top:10px">Hand-set for now. The planned lookalike engine will learn these from who actually sponsors clubs like Dumbarton across Scotland.</p>
+      <p class="hint" style="margin-top:10px">Only two rows rest on evidence so far: coaches (Marbill) and industry and business services (the club's current sponsors). The next update replaces these ratings with counts from real sponsor lists across Scottish clubs.</p>
     </section>
     <section class="card" id="sizeMethod"></section>
     </div>
@@ -476,13 +480,13 @@ const LIVE = new Set(["to-approach","contacted","in-talks"]);
 const SIZE = {micro:"Micro",small:"Small",medium:"Medium",large:"Large",unknown:"Not known"};
 const SIZE_RANK = {micro:1,small:2,medium:3,large:4,unknown:0};
 const REV_RANK = {"Under £250k":0,"£250k–£1m":1,"£1m–£5m":2,"£5m+":3};
-const SRC = {reported:["rep","Reported"], estimate:["est","Estimate"], ai:["ai","AI reading"], lead:["lead","Possible lead"], not_available:["na","Not available"]};
+const SRC = {reported:["rep","Reported"], estimate:["est","Estimate"], hand:["hand","Hand-set"], ai:["ai","AI reading"], lead:["lead","Possible lead"], not_available:["na","Not available"]};
 const srcTag = (k, extra) => { const [c,l] = SRC[k] || SRC.not_available; return `<span class="src ${c}"${extra ? ` title="${esc(extra)}"` : ""}>${l}</span>`; };
 const SZ = b => b.size || {employees_basis:"not_available", revenue_basis:"not_available", employees_note:"Not read yet"};
 const NONLOCAL = new Set(["national_chain","online_ecommerce"]);
 const PART = {
   proximity:          ["Local presence", "distance from the ground, or a recorded local connection"],
-  sector_propensity:  ["Sector", "how often this kind of business backs a club like us"],
+  sector_propensity:  ["Sector rating", "hand-set: our rating of how likely this kind of business is to back a town club"],
   company_stability:  ["Trading record", "years trading, accounts up to date"],
   ability_to_pay:     ["Size", "rough budget, kept light on purpose"],
   community_affinity: ["Local roots", "read from its own website"],
@@ -503,9 +507,12 @@ const BIZ = DATA.businesses.map(b => { const z = SZ(b); return {...b, score: b.f
   revRank: z.revenue_band in REV_RANK ? REV_RANK[z.revenue_band] : -1}; });
 const SCORE_NAME = "Fit score";
 const SOFT_K = ["community_affinity","brand_fit","csr_signal"];
-const recPts = b => ["proximity","sector_propensity","company_stability","ability_to_pay"].reduce((a,k) => a + (b.parts[k]?.points || 0), 0);
+const FACT_K = ["proximity","company_stability","ability_to_pay"];
+const recPts = b => FACT_K.reduce((a,k) => a + (b.parts[k]?.points || 0), 0);
+const handPts = b => b.parts.sector_propensity?.points || 0;
+const HAND_TOT = DATA.weights.sector_propensity || 0;
 const aiPts = b => SOFT_K.reduce((a,k) => a + (b.soft_parts?.[k]?.points || 0), 0);
-const REC_TOT = ["proximity","sector_propensity","company_stability","ability_to_pay"].reduce((a,k) => a + (DATA.weights[k] || 0), 0);
+const REC_TOT = FACT_K.reduce((a,k) => a + (DATA.weights[k] || 0), 0);
 const AI_TOT = SOFT_K.reduce((a,k) => a + (DATA.weights[k] || 0), 0);
 
 /* ---------- club tags: saved in this browser, downloadable as connections.csv ---------- */
@@ -532,8 +539,7 @@ function applyTag(b){
     if (connPts > distPts + .01) prox.via = b.connection.note;
   }
   b.parts = {...b.parts, proximity: prox};
-  const hardTot = HARD_K.reduce((a,k) => a + W[k], 0);
-  b.local_fit = 100 * HARD_K.reduce((a,k) => a + b.parts[k].points, 0) / hardTot;
+  b.local_fit = 100 * recPts(b) / REC_TOT;
   b.fit = base.fit - base.prox.points + prox.points;
   b.score = b.fit;
   const k = b.connection && b.connection.kind;
@@ -556,6 +562,7 @@ notes += `<div class="notice" role="note">${ICON}<div><b>A ranking for deciding 
 notes += `<div class="srckey" role="note"><b>Where each value comes from:</b>
   <span>${srcTag("reported")} a filed or published record</span>
   <span>${srcTag("estimate")} worked out by us, with the working shown</span>
+  <span>${srcTag("hand")} our judgment, set by hand</span>
   <span>${srcTag("ai")} judged from the business's own website</span>
   <span>${srcTag("lead")} spotted by AI, not yet confirmed</span>
   <span>${srcTag("not_available")} we don't have it</span></div>`;
@@ -632,12 +639,12 @@ function visible(){
     return (x < y ? -1 : x > y ? 1 : 0) * S.dir || b.score - a.score; });
 }
 const SORTNAME = {name:"name", distance_km:"distance", sector_label:"sector", years:"years trading", empRank:"employees", revRank:"revenue",
-  local_fit:"records only", score:"Fit score", approach:"approach", status:"outreach"};
+  local_fit:"records only (no sector rating)", score:"Fit score", approach:"approach", status:"outreach"};
 
 /* ---------- render ---------- */
 let LIST = [];
-const scoreCell = b => { const rp = recPts(b), ap = Math.max(0, b.score - rp);
-  return `<span class="score" title="${f0(rp)} from records + ${f0(ap)} from AI readings">${f0(b.score)}<i><s class="rec ${b.score >= topCut ? "top" : ""}" style="width:${Math.max(2, rp)}%"></s><s class="ai" style="left:${rp}%;width:${ap}%"></s></i></span>`; };
+const scoreCell = b => { const rp = recPts(b), hp = handPts(b), ap = Math.max(0, b.score - rp - hp);
+  return `<span class="score" title="${f0(rp)} from records + ${f0(hp)} hand-set sector rating + ${f0(ap)} from AI readings">${f0(b.score)}<i><s class="rec ${b.score >= topCut ? "top" : ""}" style="width:${Math.max(2, rp)}%"></s><s class="hand" style="left:${rp}%;width:${hp}%"></s><s class="ai" style="left:${rp + hp}%;width:${ap}%"></s></i></span>`; };
 const empCell = b => { const z = SZ(b); return z.employees_basis === "reported" ? esc(z.employees_band) : `<span class="dim" title="${esc(z.employees_note || "")}">–</span>`; };
 const revCell = b => { const z = SZ(b); return z.revenue_basis === "reported" ? esc(z.revenue_band)
   : z.revenue_basis === "estimate" ? `${esc(z.revenue_band)}<span class="est-tag" title="Estimate: typical turnover for this industry and size">est.</span>`
@@ -670,7 +677,7 @@ function render(){
   fixGroups();
   if (!$("viewC").hidden) drawScatter();
 }
-$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;out of 100. Solid bar: points from records (${REC_TOT} available). Striped: points from AI readings of the business's website (${AI_TOT} available). Gold: top 10% of this list.</span><span><span class="est-tag" style="margin:0">est.</span>&nbsp;revenue estimated from the typical turnover for that industry and size. "–" means we don't have it; hover for why.</span><span><span class="warm" style="margin:0">Tag</span>&nbsp;a recorded local connection: current sponsor, warm path, or a director based locally. It counts as local presence.</span>`;
+$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;out of 100. Dark: points from records (${REC_TOT} available). Purple: the hand-set sector rating (${HAND_TOT}). Striped: AI readings of the business's website (${AI_TOT}). Gold: top 10% of this list.</span><span><span class="est-tag" style="margin:0">est.</span>&nbsp;revenue estimated from the typical turnover for that industry and size. "–" means we don't have it; hover for why.</span><span><span class="warm" style="margin:0">Tag</span>&nbsp;a recorded local connection: current sponsor, warm path, or a director based locally. It counts as local presence.</span>`;
 
 /* ---------- events ---------- */
 $("head").onclick = e => {
@@ -735,14 +742,14 @@ $("download").onclick = () => {
     "Accounts dormant","Companies House number","Website",
     "Employees (band)","Employees (reported figure)","Employees source","Employees note",
     "Revenue (band)","Revenue source","Revenue figure used (GBP)","ONS average used (GBP)","ONS source","Revenue working","Accounts on Companies House",
-    "Fit score","Points from records","Points from AI readings","Records only (scaled to 100)",
+    "Fit score","Points from records","Points from hand-set sector rating","Points from AI readings","Records only, no sector rating (scaled to 100)",
     "AI reading: local roots","AI reading: fit with a town club","AI reading: community support","Possible leads",
     "Suggested approach","Approach detail","Warm path","Local connection","Google reviews","Google rating","Checks","Outreach status","Owner","Notes"];
   const rows = LIST.map((b,i) => { const z = SZ(b); return [i+1, b.name, b.sector_label, b.address, b.distance_km, b.years ?? "", SIZE[b.size_band] || "",
     b.dormant ? "Yes" : "No", b.company_number || "", b.website || "",
     z.employees_band || "", z.employees ?? "", SB[z.employees_basis] || "", z.employees_note || "",
     z.revenue_band || "", SB[z.revenue_basis] || "", z.revenue_value ?? "", z.est_avg_turnover ?? "", z.est_source || "", z.revenue_working || "", z.accounts_source || "",
-    f0(b.fit), recPts(b).toFixed(1), aiPts(b).toFixed(1), f0(b.local_fit),
+    f0(b.fit), recPts(b).toFixed(1), handPts(b).toFixed(1), aiPts(b).toFixed(1), f0(b.local_fit),
     rd(b,"community_affinity"), rd(b,"brand_fit"), rd(b,"csr_signal"), (b.leads || []).join("; "),
     apKind(b), b.approach.detail, b.warm_intro || "", b.connection ? connLabel(b) + ": " + b.connection.note : "",
     b.google_reviews ?? "", b.google_rating ?? "", b.flags.join("; "), STATUS[b.status] || b.status, b.owner || "", b.notes || ""]; });
@@ -813,25 +820,26 @@ function drawScatter(){
 /* ---------- method text ---------- */
 (() => {
   const W = DATA.weights, hard = ["proximity","sector_propensity","company_stability","ability_to_pay"];
-  const hardTot = hard.reduce((a,k) => a + W[k], 0);
+  const hardTot = REC_TOT;
   $("mTitle").textContent = 'What the Fit score means';
-  $("mBody").innerHTML = `<p>The Fit score is out of 100 and comes from two kinds of evidence, kept apart so you can see which is which.</p>`
-    + `<p>${srcTag("reported")} <strong>${hardTot} points from records:</strong> how close the business is to the ground (or a recorded local connection), what kind of business it is, how long it has been trading, and its size. Being local counts for most, size for least.</p>`
-    + `<p>${srcTag("ai")} <strong>${100 - hardTot} points from AI readings</strong> of the business's own website: its local roots, how well backing a town club suits it, and any sign of community support. Where a website is thin or missing, the reading is held at the middle so it can't help or hurt.</p>`
-    + `<p>"Records only" (in the table on wide screens) rescales just the record points to 100, for anyone who wants to rank on facts alone. Employees and revenue are shown for context and don't change the score.</p>`
+  $("mBody").innerHTML = `<p>The Fit score is out of 100 and comes from three kinds of evidence, kept apart so you can see which is which.</p>`
+    + `<p>${srcTag("reported")} <strong>${REC_TOT} points from records:</strong> how close the business is to the ground (or a recorded local connection), how long it has been trading, and its size. Being local counts for most, size for least.</p>`
+    + `<p>${srcTag("hand")} <strong>${HAND_TOT} points from a sector rating</strong>: our judgment of how likely this kind of business is to back a town club, set by hand (see Sector ratings). It's what keeps national chains and online shops low. It will be replaced by counts from real sponsor lists.</p>`
+    + `<p>${srcTag("ai")} <strong>${AI_TOT} points from AI readings</strong> of the business's own website: its local roots, how well backing a town club suits it, and any sign of community support. Where a website is thin or missing, the reading is held at the middle so it can't help or hurt.</p>`
+    + `<p>"Records only" (in the table on wide screens) rescales just the record points to 100, leaving out the sector rating and the AI readings, for anyone who wants to rank on facts alone. Employees and revenue are shown for context and don't change the score.</p>`
     + `<p>The suggested approach comes from the sector and size: trade businesses tend to want the programme and the website, shops and pubs want to be seen on matchday.</p>`;
   const ex = [...BIZ].sort((a,b) => b.fit - a.fit)[0];
   if (ex){
-    const p = ex.parts, pts = hard.reduce((a,k) => a + p[k].points, 0), sp = aiPts(ex);
-    $("example").innerHTML = `<b>Example.</b> ${esc(ex.name)}, ${km(ex.distance_km)} away. From records: local presence ${p.proximity.points.toFixed(1)} of ${W.proximity} + sector ${p.sector_propensity.points.toFixed(1)} of ${W.sector_propensity} + trading ${p.company_stability.points.toFixed(1)} of ${W.company_stability} + size ${p.ability_to_pay.points.toFixed(1)} of ${W.ability_to_pay} = ${pts.toFixed(1)}. From AI readings: ${sp.toFixed(1)} of ${100 - hardTot}. Fit score <b>${f0(ex.fit)}</b>.`;
+    const p = ex.parts, sp = aiPts(ex);
+    $("example").innerHTML = `<b>Example.</b> ${esc(ex.name)}, ${km(ex.distance_km)} away. From records: local presence ${p.proximity.points.toFixed(1)} of ${W.proximity} + trading ${p.company_stability.points.toFixed(1)} of ${W.company_stability} + size ${p.ability_to_pay.points.toFixed(1)} of ${W.ability_to_pay} = ${recPts(ex).toFixed(1)}. Sector rating: ${p.sector_propensity.points.toFixed(1)} of ${W.sector_propensity}. From AI readings: ${sp.toFixed(1)} of ${AI_TOT}. Fit score <b>${f0(ex.fit)}</b>.`;
   }
   const keys = Object.keys(W).sort((a,b) => W[b] - W[a]), max = Math.max(...keys.map(k => W[k]));
   const scale = 100;
   $("weightBars").innerHTML = keys.map(k => `
-    <div class="lg${k === "proximity" ? " base" : ""}${hard.includes(k) ? "" : " soft"}"><span>${esc(PART[k][0])}</span>
+    <div class="lg${k === "proximity" ? " base" : ""}${k === "sector_propensity" ? " hand" : hard.includes(k) ? "" : " soft"}"><span>${esc(PART[k][0])}</span>
       <span class="tr"><i style="width:${(W[k]/max*100).toFixed(1)}%"></i></span>
       <span class="v">${Math.round(W[k]/scale*100)}%</span></div>`).join("")
-    + `<p class="hint" style="margin-top:10px">Share of the Fit score. Striped: AI readings of the business's website.</p>`;
+    + `<p class="hint" style="margin-top:10px">Share of the Fit score. Purple: hand-set. Striped: AI readings of the business's website.</p>`;
   const secs = [...DATA.sectors].sort((a,b) => b.propensity - a.propensity);
   $("sectorBars").innerHTML = secs.map(s => `
     <div class="lg${s.propensity >= .85 ? " base" : ""}"><span>${esc(s.label)}</span>
@@ -861,7 +869,7 @@ function pbar(k, part, soft){
   const frac = part.weight ? part.points / part.weight : 0;
   const sub = part.via ? "lifted by a local connection: " + part.via : PART[k][1];
   return `<div class="pb"><span class="k">${esc(PART[k][0])}<small>${esc(sub)}</small></span>
-    <span class="bar"><i class="${soft ? "soft" : frac >= .85 ? "top" : ""}" style="width:${Math.max(2, frac*100)}%"></i></span>
+    <span class="bar"><i class="${soft === "hand" ? "hand" : soft ? "soft" : frac >= .85 ? "top" : ""}" style="width:${Math.max(2, frac*100)}%"></i></span>
     <span class="pv">${part.points.toFixed(1)} <small>of ${part.weight}</small></span></div>`;
 }
 function openBiz(n, from){
@@ -893,7 +901,7 @@ function openBiz(n, from){
         <p class="sub">Out of 100: points from records plus points from AI readings of the business's website.</p>
         <div class="hero">
           <div class="key"><b>${f0(b.score)}<small> /100</small></b><span>${SCORE_NAME}</span></div>
-          <div><b>${f0(recPts(b))}<small> of ${REC_TOT}</small></b><span>From records</span></div>
+          <div><b>${f0(recPts(b))}<small> of ${REC_TOT}</small></b><span>From records (+ ${f0(handPts(b))} sector rating, ${f0(aiPts(b))} AI)</span></div>
           <div><b>${BIZ.filter(x => x.score > b.score).length + 1}<small> of ${BIZ.length}</small></b><span>Place on the full list</span></div>
         </div>
       </section>
@@ -902,7 +910,9 @@ function openBiz(n, from){
         <h3>Where the points come from</h3>
         <p class="sub">Points earned out of the points available for each part.</p>
         <div class="pbhead"><span>${srcTag("reported")} From records</span><span>${recPts(b).toFixed(1)} of ${REC_TOT}</span></div>
-        ${hard.map(k => pbar(k, b.parts[k], false)).join("")}
+        ${FACT_K.map(k => pbar(k, b.parts[k], false)).join("")}
+        <div class="pbhead"><span>${srcTag("hand")} Sector rating</span><span>${handPts(b).toFixed(1)} of ${HAND_TOT}</span></div>
+        ${pbar("sector_propensity", b.parts.sector_propensity, "hand")}
         ${b.soft_parts ? `<div class="pbhead"><span>${srcTag("ai")} From AI readings of its website</span><span>${aiPts(b).toFixed(1)} of ${AI_TOT}</span></div>`
           + Object.keys(b.soft_parts).map(k => pbar(k, b.soft_parts[k], true)).join("") : ""}
       </section>

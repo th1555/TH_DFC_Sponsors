@@ -42,6 +42,7 @@ The lab page is now part of the main sponsor page. <a href="index.html">Go to So
 """
 MARK = "/*__DATA__*/null"
 HARD = ["proximity", "sector_propensity", "company_stability", "ability_to_pay"]
+FACT = ["proximity", "company_stability", "ability_to_pay"]   # records only: no hand-set sector rating
 SOFT = ["community_affinity", "brand_fit", "csr_signal"]
 
 SECTOR_LABELS = {
@@ -109,7 +110,7 @@ def ons_rows_used(est: pd.DataFrame) -> list[dict]:
 
 def build_payload(conn, cfg, scouting_link: str | None) -> dict:
     w = cfg["weights"]
-    hard_total = sum(w[k] for k in HARD)
+    fact_total = sum(w[k] for k in FACT)
 
     biz = pd.read_sql("SELECT * FROM businesses", conn)
     sc = pd.read_sql("SELECT * FROM business_scores", conn)
@@ -129,7 +130,7 @@ def build_payload(conn, cfg, scouting_link: str | None) -> dict:
     rows = []
     for i, r in enumerate(df.sort_values("fit_score", ascending=False).itertuples()):
         contrib = json.loads(r.contrib_json) if r.contrib_json else {}
-        local_fit = 100 * sum(contrib.get(k, 0) for k in HARD) / hard_total
+        local_fit = 100 * sum(contrib.get(k, 0) for k in FACT) / fact_total
         # things to check before calling; the warm path and "micro business" are
         # shown elsewhere (tag, size column) and aren't warnings. AI leads are
         # split out: they're shown as "Possible lead", not as a check.
