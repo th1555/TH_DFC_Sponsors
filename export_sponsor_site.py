@@ -153,6 +153,10 @@ def build_payload(conn, cfg, scouting_link: str | None) -> dict:
     sf = pd.read_sql("SELECT * FROM soft_features", conn)
     est = pd.read_sql("SELECT * FROM revenue_estimates", conn).drop(columns=["computed_at"])
     football = football_by_business(conn)
+    web_clubs = {}
+    if _table(conn, "website_club_leads"):
+        for bid, club in conn.execute("SELECT business_id, club FROM website_club_leads"):
+            web_clubs.setdefault(bid, []).append(club)
     df = (sc.merge(biz, on="business_id", how="left")
             .merge(os_, on="business_id", how="left")
             .merge(est.rename(columns={"employees": "est_employees"}), on="business_id", how="left"))
@@ -215,6 +219,7 @@ def build_payload(conn, cfg, scouting_link: str | None) -> dict:
                 accounts_source=clean(r.accounts_source)),
         )
         rec["football"] = football.get(r.business_id, [])
+        rec["website_clubs"] = web_clubs.get(r.business_id, [])
         rec["fit"] = round(float(r.fit_score), 1)
         rec["soft_parts"] = {k: dict(points=round(contrib.get(k, 0), 2), weight=w[k]) for k in SOFT}
         rec["soft"] = soft_by.get(r.business_id, {})

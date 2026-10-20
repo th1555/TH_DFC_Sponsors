@@ -173,7 +173,13 @@ def save_estimates(conn, rows):
 def upsert_soft_features(conn, business_id, derived: dict, model: str):
     """derived is {feature: {value, confidence, justification}} from soft_features.py"""
     rows = [(business_id, f, float(d["value"]), float(d["confidence"]),
-             d["justification"], model, now()) for f, d in derived.items()]
+             d["justification"], model, now()) for f, d in derived.items() if isinstance(d, dict)]
+    # clubs the business's own website says it sponsors: possible leads, not scored
+    conn.execute("CREATE TABLE IF NOT EXISTS website_club_leads (business_id TEXT, club TEXT, model TEXT, "
+                 "derived_at TEXT, PRIMARY KEY (business_id, club))")
+    conn.execute("DELETE FROM website_club_leads WHERE business_id=?", (business_id,))
+    conn.executemany("INSERT OR IGNORE INTO website_club_leads VALUES (?,?,?,?)",
+                     [(business_id, c, model, now()) for c in derived.get("clubs_named") or []])
     conn.executemany(
         "INSERT INTO soft_features (business_id,feature,value,confidence,"
         "justification,model,derived_at) VALUES (?,?,?,?,?,?,?) "

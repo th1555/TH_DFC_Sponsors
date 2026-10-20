@@ -44,7 +44,8 @@ _FIX = {
     "marbill": "Marbill Coaches is a family-run coach and haulage firm based in the "
                "Vale of Leven, proudly serving West Dunbartonshire since 1987. We support "
                "local grassroots sport and community groups across Dumbarton and have "
-               "sponsored youth teams in the area for over a decade.",
+               "sponsored youth teams in the area for over a decade, including Vale of Leven "
+               "Boys Club and the Dumbarton FC Under 14s.",
     "anchor": "The Anchor Inn is a traditional community pub in the heart of Dumbarton — "
               "a proud local on matchdays, with quiz nights and charity fundraisers for "
               "town causes throughout the year.",

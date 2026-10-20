@@ -93,6 +93,9 @@ cites a specific fact or phrase from the context:
    a sports club, team, league or event. High value ONLY if the text names the
    club, team or event; quote it in the justification. General charity or
    "community" wording is csr_signal, not this.
+5. clubs_named — a list of every sports club, team, league or event the text
+   says the business sponsors, supports or partners, written EXACTLY as it
+   appears in the text (e.g. "Vale of Leven Boys Club"). [] if none is named.
 
 Rules:
 - Use ONLY the context above. If it does not support a judgment, return LOW
@@ -103,7 +106,8 @@ Rules:
   "community_affinity": {{"value": 0.0, "confidence": 0.0, "justification": ""}},
   "brand_fit":          {{"value": 0.0, "confidence": 0.0, "justification": ""}},
   "csr_signal":         {{"value": 0.0, "confidence": 0.0, "justification": ""}},
-  "local_connection":   {{"value": 0.0, "confidence": 0.0, "justification": ""}}
+  "local_connection":   {{"value": 0.0, "confidence": 0.0, "justification": ""}},
+  "clubs_named":        []
 }}"""
 
 
@@ -145,7 +149,21 @@ def validate(raw: dict) -> dict:
             "justification": str(blk.get("justification") or "").strip()[:200]
                              or "no justification given",
         }
+    clubs = raw.get("clubs_named") if isinstance(raw, dict) else None
+    out["clubs_named"] = [str(c).strip()[:80] for c in (clubs if isinstance(clubs, list) else [])
+                          if str(c).strip()][:8]
     return out
+
+
+def _n(s):
+    return re.sub(r"[^a-z0-9]+", " ", str(s or "").lower().replace("&", " and ")).strip()
+
+
+def verbatim_clubs(derived: dict, text: str) -> dict:
+    """Keep only club names that appear word-for-word in the website text."""
+    hay = f" {_n(text)} "
+    derived["clubs_named"] = [c for c in derived.get("clubs_named", []) if _n(c) and f" {_n(c)} " in hay]
+    return derived
 
 
 def parse_json_reply(text: str) -> dict:
@@ -193,7 +211,7 @@ def derive_llm(rec: dict, model=DEFAULT_MODEL, api_key=None, tries=4) -> dict:
             resp.raise_for_status()
             text = "".join(b.get("text", "") for b in resp.json().get("content", [])
                            if b.get("type") == "text")
-            return parse_json_reply(text)
+            return verbatim_clubs(parse_json_reply(text), rec.get("website_text") or "")
         except requests.RequestException as e:
             last = str(e)[:120]
             time.sleep(3 * 2 ** attempt)
@@ -260,7 +278,14 @@ def derive_stub(rec: dict) -> dict:
                        "justification": just("CSR", csr_h)},
         "local_connection": {"value": min(1.0, 0.05 + 0.35 * con_h), "confidence": base_conf * 0.8,
                              "justification": just("sponsorship / club", con_h)},
+        "clubs_named": _CLUB_NAME.findall(text),
     })
+
+
+# stand-in for the AI's clubs_named: capitalised names ending in a club word
+_CLUB_NAME = re.compile(r"\b((?:[A-Z][\w'&.-]*\s(?:(?:of|the|and|&)\s)?){0,4}(?:FC|AFC|F\.C\.|Football Club|Boys Club|Girls Club|"
+                        r"Juniors|Amateurs|RFC|Rugby Club|Cricket Club|Golf Club|Athletic|Thistle|Rovers|United)"
+                        r"(?:\s(?:Under|U)\s?\d{1,2}s?)?)\b")
 
 
 def connection_lead(flat: dict) -> str | None:

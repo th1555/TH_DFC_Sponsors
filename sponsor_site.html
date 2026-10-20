@@ -759,7 +759,7 @@ $("download").onclick = () => {
     "Employees (band)","Employees (reported figure)","Employees source","Employees note",
     "Revenue (band)","Revenue source","Revenue figure used (GBP)","ONS average used (GBP)","ONS source","Revenue working","Accounts on Companies House",
     "Fit score","Points from records","Points from hand-set sector rating","Points from AI readings","Records only, no sector rating (scaled to 100)",
-    "Football sponsorship (club: seasons)","Football sponsorship to check (name match only)",
+    "Football sponsorship (club: seasons)","Football sponsorship to check (name match only)","Clubs named on its own website (possible leads)",
     "AI reading: local roots","AI reading: fit with a town club","AI reading: community support","Possible leads",
     "Suggested approach","Approach detail","Warm path","Local connection","Google reviews","Google rating","Checks","Outreach status","Owner","Notes"];
   const rows = LIST.map((b,i) => { const z = SZ(b); return [i+1, b.name, b.sector_label, b.address, b.distance_km, b.years ?? "", SIZE[b.size_band] || "",
@@ -769,6 +769,7 @@ $("download").onclick = () => {
     f0(b.fit), recPts(b).toFixed(1), handPts(b).toFixed(1), aiPts(b).toFixed(1), f0(b.local_fit),
     (b.football || []).filter(x => !x.weak).map(x => `${x.club}: ${x.seasons.join(", ")}`).join("; "),
     (b.football || []).filter(x => x.weak).map(x => `${x.club}: ${x.seasons.join(", ")} (listed as ${x.name_on_list})`).join("; "),
+    (b.website_clubs || []).join("; "),
     rd(b,"community_affinity"), rd(b,"brand_fit"), rd(b,"csr_signal"), (b.leads || []).join("; "),
     apKind(b), b.approach.detail, b.warm_intro || "", b.connection ? connLabel(b) + ": " + b.connection.note : "",
     b.google_reviews ?? "", b.google_rating ?? "", b.flags.join("; "), STATUS[b.status] || b.status, b.owner || "", b.notes || ""]; });
@@ -1016,8 +1017,12 @@ function footCard(b){
       <div class="meta">${srcTag("reported")} on the club's own sponsor page${x.name_on_list && x.name_on_list !== b.name ? `, listed as “${esc(x.name_on_list)}”` : ""}${x.by === "website" ? ", logo links to this business's website" : ""}</div>
       ${x.weak ? `<div class="callout warn"><b>Check it's the same business</b>The names are very similar but not the same, so this could be a different firm.</div>` : ""}
       <div class="srcs">Sources: ${links}</div></div>`; }).join("");
+  const wc = b.website_clubs || [];
+  const leads = wc.length ? `<div class="fbrow"><div class="meta" style="margin-bottom:4px">${srcTag("lead")} Named on the business's own website as a club, team or event it sponsors or supports. Not checked, not scored.</div>
+      <div class="seasons" style="font-weight:700">${wc.map(esc).join(" · ")}</div>
+      <div class="meta">Worth asking about. If it's Dumbarton, tag the relationship below so it counts.</div></div>` : "";
   return `<section class="dcard"><h3>Football sponsorship</h3>
-    <p class="sub">Clubs whose own sponsor pages list this business, from ${fc && fc.first ? esc(fc.first) : "2021/22"} on. Shown for context, not judged: backing another club isn't good or bad.</p>${body}</section>`;
+    <p class="sub">Clubs whose own sponsor pages list this business, from ${fc && fc.first ? esc(fc.first) : "2021/22"} on. Shown for context, not judged: backing another club isn't good or bad.</p>${body}${leads}</section>`;
 }
 function sizeCard(b){
   const z = SZ(b);
