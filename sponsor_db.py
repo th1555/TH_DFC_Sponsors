@@ -78,8 +78,8 @@ CREATE TABLE IF NOT EXISTS company_accounts (
 CREATE TABLE IF NOT EXISTS revenue_estimates (
   business_id TEXT PRIMARY KEY, employees INTEGER, employees_band TEXT,
   employees_basis TEXT, employees_note TEXT, revenue_basis TEXT, revenue_band TEXT,
-  revenue_value INTEGER, revenue_working TEXT, est_section TEXT, est_ratio INTEGER,
-  est_ratio_source TEXT, accounts_period_end TEXT, accounts_source TEXT,
+  revenue_value INTEGER, revenue_working TEXT, est_section TEXT, est_avg_turnover INTEGER,
+  est_source TEXT, accounts_period_end TEXT, accounts_source TEXT,
   method_version TEXT, computed_at TEXT
 );
 CREATE TABLE IF NOT EXISTS outreach_status (
@@ -102,6 +102,11 @@ EXTRA_BUSINESS_COLS = {"company_number": "TEXT", "website": "TEXT",
 
 
 def init_db(conn):
+    # revenue_estimates is disposable (rebuilt every run): if an older layout is
+    # there, drop it rather than migrate
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(revenue_estimates)")}
+    if cols and "est_avg_turnover" not in cols:
+        conn.execute("DROP TABLE revenue_estimates")
     conn.executescript(SCHEMA)
     have = {r[1] for r in conn.execute("PRAGMA table_info(businesses)")}
     for col, typ in EXTRA_BUSINESS_COLS.items():
@@ -155,7 +160,7 @@ def save_estimates(conn, rows):
     """The bands shown on the page. Disposable: rebuilt from accounts + ratios."""
     cols = ["business_id", "employees", "employees_band", "employees_basis", "employees_note",
             "revenue_basis", "revenue_band", "revenue_value", "revenue_working", "est_section",
-            "est_ratio", "est_ratio_source", "accounts_period_end", "accounts_source",
+            "est_avg_turnover", "est_source", "accounts_period_end", "accounts_source",
             "method_version"]
     conn.execute("DELETE FROM revenue_estimates")
     conn.executemany(

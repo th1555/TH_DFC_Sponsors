@@ -282,7 +282,7 @@ def refresh_accounts(conn, ingest_mode="fixture", fetch=True):
                                   "filed_on, accounts_type, source_url FROM company_accounts")}
     ratios = rev.load_ratios()
     if not ratios:
-        print("  revenue: no ONS ratio table yet (ons_turnover_per_employee.csv), so reported "
+        print("  revenue: no ONS table yet (ons_turnover_by_size.csv), so reported "
               "turnover only, no estimates")
     rows = []
     for bid, num, sic in biz:

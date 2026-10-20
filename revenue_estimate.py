@@ -6,14 +6,19 @@ Turns the recorded figures from ingest_accounts.py into what the page shows:
 
   Employees  a band from the reported average headcount; "Directors only" for 0
   Revenue    1. REPORTED  turnover from the filed accounts, when it's there
-             2. ESTIMATE  reported employees x the ONS average turnover per
-                          employee for the company's industry and size
+             2. ESTIMATE  the ONS average turnover per business for the
+                          company's industry and employee size band (the
+                          reported headcount picks the size band)
              3. NOT AVAILABLE  no headcount, or an industry ONS doesn't cover
 
 Every estimate carries its working as a sentence and as separate inputs, so a
-person can check the sum by hand. The ratio table lives in
-ons_turnover_per_employee.csv (built from the ONS file by build_ons_ratios.py),
-not in code, so it can be reviewed and updated each year without a code change.
+person can check it against one line of the ONS table. That table lives in
+ons_turnover_by_size.csv (built from the ONS file by build_ons_ratios.py), not
+in code, so it can be reviewed and updated each year without a code change.
+
+Known limits, stated on the page: every firm in the same industry and size band
+gets the same figure (a 2-person and a 9-person joiner look alike), and it's an
+average, so a few larger firms pull it up.
 
 Pure functions, no network. python revenue_estimate.py runs the checks.
 """
@@ -21,8 +26,8 @@ from __future__ import annotations
 import csv
 import os
 
-RATIOS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ons_turnover_per_employee.csv")
-METHOD_VERSION = "rev-est-v1"
+RATIOS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ons_turnover_by_size.csv")
+METHOD_VERSION = "rev-est-v2-avg-per-business"
 
 EMPLOYEE_BANDS = [(1, 9, "1–9"), (10, 49, "10–49"), (50, 249, "50–249"), (250, None, "250+")]
 REVENUE_BANDS = [(0, 250_000, "Under £250k"), (250_000, 1_000_000, "£250k–£1m"),
@@ -89,14 +94,20 @@ def load_ratios(path=RATIOS_PATH) -> list[dict]:
     for r in rows:
         r["emp_min"] = int(r["emp_min"])
         r["emp_max"] = int(r["emp_max"]) if str(r.get("emp_max") or "").strip() else None
-        r["turnover_per_employee_gbp"] = float(r["turnover_per_employee_gbp"])
+        r["avg_turnover_per_business_gbp"] = float(r["avg_turnover_per_business_gbp"])
+        r["sic_prefixes"] = tuple(str(r.get("sic_prefixes") or "").split())
     return rows
 
 
-def find_ratio(ratios, section, employees) -> dict | None:
+def find_ratio(ratios, section, employees, sic=None) -> dict | None:
+    """The ONS row for this industry and size band, if the survey covers this
+    business's SIC code (partial sections list the prefixes they cover)."""
+    digits = "".join(ch for ch in str(sic or "") if ch.isdigit()).zfill(5)
     for r in ratios:
         if r["section"] == section and employees >= r["emp_min"] \
                 and (r["emp_max"] is None or employees <= r["emp_max"]):
+            if r["sic_prefixes"] and not digits.startswith(r["sic_prefixes"]):
+                return None
             return r
     return None
 
@@ -123,7 +134,7 @@ def assess(acct: dict | None, sic_codes, ratios) -> dict:
         employees_note=(_when(acct.get("period_end")) if emp is not None
                         else ia.STATUS_TEXT.get(status) or ia.STATUS_TEXT["not_in_accounts"]),
         revenue_basis="not_available", revenue_band=None, revenue_value=None,
-        revenue_working=None, est_section=None, est_ratio=None, est_ratio_source=None,
+        revenue_working=None, est_section=None, est_avg_turnover=None, est_source=None,
         method_version=METHOD_VERSION,
         accounts_period_end=acct.get("period_end"), accounts_source=acct.get("source_url"),
     )
@@ -148,24 +159,25 @@ def assess(acct: dict | None, sic_codes, ratios) -> dict:
     if not section:
         out["revenue_working"] = "No industry code on the company record to estimate from."
         return out
-    r = find_ratio(ratios, section, emp)
-    if not r:
-        out["revenue_working"] = (f"ONS publishes no turnover-per-employee figure for "
-                                  f"{SECTION_NAMES.get(section, section)} at this size, so no estimate."
-                                  if ratios else "Ratio table not loaded, so no estimate.")
-        out["est_section"] = section
+    out["est_section"] = section
+    if not ratios:
+        out["revenue_working"] = "ONS table not loaded, so no estimate."
         return out
-    est = emp * r["turnover_per_employee_gbp"]
+    r = find_ratio(ratios, section, emp, sic)
+    if not r:
+        out["revenue_working"] = (f"The ONS survey doesn't cover this industry (code {sic}, "
+                                  f"{SECTION_NAMES.get(section, section)}), so no estimate.")
+        return out
+    est = r["avg_turnover_per_business_gbp"]
     size_txt = (f"{r['emp_min']}+" if r["emp_max"] is None else f"{r['emp_min']}–{r['emp_max']}")
     out.update(
         revenue_basis="estimate", revenue_value=round(est), revenue_band=revenue_band(est),
-        est_section=section, est_ratio=round(r["turnover_per_employee_gbp"]),
-        est_ratio_source=f"{r['source']}, {r['year']}",
+        est_avg_turnover=round(est), est_source=f"{r['source']}, {r['year']} figures",
         revenue_working=(
-            f"{emp} employees ({_when(acct.get('period_end'))}) × £{r['turnover_per_employee_gbp']:,.0f} "
-            f"average turnover per employee for {SECTION_NAMES.get(section, section)} businesses "
-            f"with {size_txt} employees (industry code {sic}; {r['source']}, {r['year']}) "
-            f"= about £{est:,.0f}, so {revenue_band(est)}."))
+            f"{emp} employees ({_when(acct.get('period_end'))}) puts it in the {size_txt} size band. "
+            f"The average UK {SECTION_NAMES.get(section, section)} business with {size_txt} employees "
+            f"turned over £{est:,.0f} in {r['year']} ({r['source']}; industry code {sic}), "
+            f"so {revenue_band(est)}. Every firm this size in this industry gets the same figure."))
     return out
 
 
@@ -181,26 +193,33 @@ if __name__ == "__main__":
         ["H", "I", "A", "M", "U", None, None]
     print("bands and industry sections ✓")
 
-    ratios = [dict(section="H", emp_min=0, emp_max=9, turnover_per_employee_gbp=100_000.0,
-                   source="ONS test table", year="2024"),
-              dict(section="H", emp_min=10, emp_max=49, turnover_per_employee_gbp=120_000.0,
-                   source="ONS test table", year="2024")]
+    ratios = [dict(section="H", emp_min=1, emp_max=9, avg_turnover_per_business_gbp=268_915.0,
+                   sic_prefixes=(), source="ONS test table", year="2024"),
+              dict(section="H", emp_min=10, emp_max=49, avg_turnover_per_business_gbp=4_152_860.0,
+                   sic_prefixes=(), source="ONS test table", year="2024"),
+              dict(section="Q", emp_min=1, emp_max=9, avg_turnover_per_business_gbp=114_958.0,
+                   sic_prefixes=("861", "869", "87", "88"), source="ONS test table", year="2024")]
     rep = dict(status="reported", employees=23, turnover=2_450_000, period_end="2025-03-31")
     a = assess(rep, ["49390"], ratios)
     assert (a["revenue_basis"], a["revenue_band"], a["employees_band"]) == ("reported", "£1m–£5m", "10–49")
 
     est = dict(status="reported", employees=8, turnover=None, period_end="2025-02-28")
     a = assess(est, ["49390"], ratios)
-    assert (a["revenue_basis"], a["revenue_value"], a["revenue_band"]) == ("estimate", 800_000, "£250k–£1m")
-    assert "8 employees" in a["revenue_working"] and "£100,000" in a["revenue_working"]
+    assert (a["revenue_basis"], a["revenue_value"], a["revenue_band"]) == ("estimate", 268_915, "£250k–£1m")
+    assert "1–9 size band" in a["revenue_working"] and "£268,915" in a["revenue_working"]
     print("estimate working:", a["revenue_working"])
+    # partial coverage: physio (86.90) is in the survey, a dental practice (86.23) isn't
+    a = assess(est, ["86900"], ratios)
+    assert (a["revenue_basis"], a["revenue_band"]) == ("estimate", "Under £250k"), a
+    a = assess(est, ["86230"], ratios)
+    assert a["revenue_basis"] == "not_available" and "doesn't cover" in a["revenue_working"], a
 
     a = assess(dict(status="reported", employees=0, period_end="2025-03-31"), ["49390"], ratios)
     assert a["employees_band"] == "Directors only" and a["revenue_basis"] == "not_available"
     a = assess(dict(status="paper_only"), ["49390"], ratios)
     assert a["employees_basis"] == "not_available" and "paper" in a["employees_note"]
     a = assess(est, ["64191"], ratios)            # finance: not in the ratio table
-    assert a["revenue_basis"] == "not_available" and "no estimate" in a["revenue_working"]
+    assert a["revenue_basis"] == "not_available" and "doesn't cover" in a["revenue_working"]
     a = assess(None, [], ratios)
     assert a["employees_note"] == "No Companies House record linked"
     a = assess(est, ["49390"], [])                # table not loaded yet

@@ -215,10 +215,13 @@ Read from each linked company's **filed accounts** (free, same Companies House k
 - **Employees**: the average headcount the accounts report, shown as a band
   (1–9, 10–49, 50–249, 250+). A reported 0 shows as *Directors only*.
 - **Revenue**: the **reported** turnover where the accounts include it (rare for
-  small firms). Otherwise an **estimate**: reported employees × the ONS average
-  turnover per employee for the company's industry and size. Every estimate carries
-  its working, e.g. *"8 employees × £X for transport businesses with 0–9 employees
-  (industry code 49390; ONS ABS, 2024) = about £Y, so £250k–£1m"*. Shown as bands.
+  small firms). Otherwise an **estimate**: the ONS average turnover per business
+  for the company's industry and employee size band (the reported headcount picks
+  the band). Every estimate carries its working, e.g. *"6 employees puts it in the
+  1–9 size band. The average UK construction business with 1–9 employees turned
+  over £314,490 in 2024 (ONS Annual Business Survey size-band table) → £250k–£1m"*.
+  Every firm in the same industry and size band gets the same figure, and an
+  average is pulled up by larger firms, so it's shown as a band and labelled.
 - **Not available** otherwise, with the reason: no company record (sole traders,
   partnerships), paper-only accounts, dormant, or no headcount. Never a guess.
 
@@ -228,9 +231,21 @@ python sponsor_pipeline.py --accounts-only --api           # add them to an exis
 python sponsor_pipeline.py --accounts-only --no-fetch      # just recompute the bands
 ```
 
-The ratio table is `ons_turnover_per_employee.csv`, built from the ONS Annual
-Business Survey size-band file by `build_ons_ratios.py`. It's data, not code, so it
-can be checked by hand and updated each year. Without it, only reported turnover shows.
+The figures come from `ons_turnover_by_size.csv`, built from the ONS Annual Business
+Survey size-band workbook by `build_ons_ratios.py` (total turnover ÷ number of
+businesses, same table row). It's data, not code, so it can be checked by hand.
+Update it each year after ONS's May release:
+
+```bash
+pip install openpyxl
+python build_ons_ratios.py abssizeband.xlsx
+python sponsor_pipeline.py --accounts-only --no-fetch   # recompute bands, no API calls
+```
+
+The survey covers the non-financial economy only, so finance, public bodies and
+GP, medical and dental practices show "not available" (the CSV's `sic_prefixes`
+column records each partial industry's coverage). ONS dropped employment from this
+table in 2026, which is why the estimate is per business, not per employee.
 
 ## Deploying
 
@@ -275,6 +290,8 @@ whichever repo holds `site/` private. `sponsor.db` itself is never committed.
 | `outreach.py` | Records outreach status and notes (the walled human table) |
 | `ingest_accounts.py` | Employees and turnover from filed accounts (machine-readable iXBRL) |
 | `revenue_estimate.py` | Employee/revenue bands; reported, else estimate with working, else not available |
+| `build_ons_ratios.py` | Builds `ons_turnover_by_size.csv` from the ONS size-band workbook |
+| `ons_turnover_by_size.csv` | Average turnover per business by industry and size (ONS, 2024 figures) |
 | `sponsor_app.py` | Streamlit working view, local use |
 
 *A decision-support prototype. It ranks and prepares; the club decides.*

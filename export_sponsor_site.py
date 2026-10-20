@@ -148,7 +148,7 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
                 revenue_basis=clean(r.revenue_basis) or "not_available",
                 revenue_band=clean(r.revenue_band), revenue_value=as_int(r.revenue_value),
                 revenue_working=clean(r.revenue_working),
-                est_ratio=as_int(r.est_ratio), est_ratio_source=clean(r.est_ratio_source),
+                est_avg_turnover=as_int(r.est_avg_turnover), est_source=clean(r.est_source),
                 accounts_period_end=clean(r.accounts_period_end),
                 accounts_source=clean(r.accounts_source)),
         )
