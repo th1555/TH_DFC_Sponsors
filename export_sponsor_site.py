@@ -3,17 +3,14 @@
 export_sponsor_site.py  —  build the shareable sponsor website from sponsor.db
 =============================================================================
 The sponsor-side twin of export_site.py. Reads the finished store (businesses,
-scores, outreach status, and for the lab page the website readings) and writes
-two self-contained pages from ONE design, sponsor_site.html:
+scores, website readings, employees and revenue, outreach status) and writes
+one self-contained hub page from the design in sponsor_site.html:
 
-    site/index.html   <- the shipped page: recorded facts + Local fit
-    site/lab.html     <- the prototype: adds the website readings and the
-                         full fit score that includes them
-
-Same split as Sons Scouting. The shipped page shows only what is recorded
-(location, sector, company record) and the score built from it. The website
-readings are judgments, and on the keyword proxy they are rough, so they live
-on the lab page, behind the same login but not linked.
+    site/index.html   <- everything, every value tagged by where it came from:
+                         Reported / Estimate / AI reading / Possible lead /
+                         Not available
+    site/lab.html     <- a redirect to index.html (the lab page was merged into
+                         the hub in Phase 2; old bookmarks still land)
 
     python sponsor_pipeline.py --real --api      # build the store
     python export_sponsor_site.py                 # write site/
@@ -37,6 +34,12 @@ import sponsor_db as db
 import data_checks as dc
 
 TEMPLATE = "sponsor_site.html"
+REDIRECT = """<!doctype html><html lang="en-GB"><head><meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow"><meta http-equiv="refresh" content="0; url=index.html">
+<title>Sons Sponsors</title></head><body style="font-family:sans-serif;padding:24px">
+The lab page is now part of the main sponsor page. <a href="index.html">Go to Sons Sponsors</a>.
+</body></html>
+"""
 MARK = "/*__DATA__*/null"
 HARD = ["proximity", "sector_propensity", "company_stability", "ability_to_pay"]
 SOFT = ["community_affinity", "brand_fit", "csr_signal"]
@@ -83,7 +86,28 @@ def approach(tier: str) -> dict:
     return {"kind": head.strip() or "Review", "detail": tail.strip()}
 
 
-def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
+def ons_rows_used(est: pd.DataFrame) -> list[dict]:
+    """The ONS lines behind the estimates on this page, for the methods card."""
+    import revenue_estimate as rev
+    used = est[est.revenue_basis == "estimate"]
+    if used.empty:
+        return []
+    ratios = rev.load_ratios()
+    pairs = {(sec, rev.find_ratio(ratios, sec, int(n))["size_band"])
+             for sec, n in zip(used.est_section, used.employees)
+             if rev.find_ratio(ratios, sec, int(n))}
+    keep = []
+    for r in ratios:
+        if (r["section"], r["size_band"]) in pairs:
+            keep.append(dict(section=r["section"], name=rev.SECTION_NAMES.get(r["section"], r["section_name"]),
+                             band=r["size_band"].replace(" to ", "–"),
+                             avg=round(r["avg_turnover_per_business_gbp"]),
+                             businesses=int(r["enterprises"]), year=r["year"],
+                             coverage=r.get("coverage_note") or ""))
+    return keep
+
+
+def build_payload(conn, cfg, scouting_link: str | None) -> dict:
     w = cfg["weights"]
     hard_total = sum(w[k] for k in HARD)
 
@@ -107,12 +131,13 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
         contrib = json.loads(r.contrib_json) if r.contrib_json else {}
         local_fit = 100 * sum(contrib.get(k, 0) for k in HARD) / hard_total
         # things to check before calling; the warm path and "micro business" are
-        # shown elsewhere (tag, size column) and aren't warnings
-        flags = [f.strip() for f in str(r.flags or "").split(";")
-                 if f.strip() and f.strip() != "-"
-                 and not f.strip().startswith(("WARM PATH", "micro business"))
-                 # AI leads are judgments: lab page only
-                 and (lab or not f.strip().startswith("possible connection"))]
+        # shown elsewhere (tag, size column) and aren't warnings. AI leads are
+        # split out: they're shown as "Possible lead", not as a check.
+        raw = [f.strip() for f in str(r.flags or "").split(";")
+               if f.strip() and f.strip() != "-"
+               and not f.strip().startswith(("WARM PATH", "micro business"))]
+        leads = [f for f in raw if f.startswith("possible connection")]
+        flags = [f for f in raw if f not in leads]
         # did a recorded connection, rather than distance, set the proximity part?
         dist_pts = (math.exp(-float(r.distance_km) / cfg["proximity"]["decay_km"]) * w["proximity"]
                     if pd.notna(r.distance_km) else 0.0)
@@ -126,7 +151,7 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
             dormant=bool(r.accounts_dormant), address=clean(r.address),
             website=clean(r.website), company_number=clean(r.company_number),
             postcode=clean(r.postcode), ch_flag=clean(r.ch_flag),
-            warm_intro=clean(r.warm_intro), approach=approach(r.tier), flags=flags,
+            warm_intro=clean(r.warm_intro), approach=approach(r.tier), flags=flags, leads=leads,
             local_fit=round(local_fit, 1),
             parts={k: dict(points=round(contrib.get(k, 0), 2), weight=w[k],
                            **({"via": via} if k == "proximity" and via else {}))
@@ -152,10 +177,9 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
                 accounts_period_end=clean(r.accounts_period_end),
                 accounts_source=clean(r.accounts_source)),
         )
-        if lab:  # judgments: only on the prototype page
-            rec["fit"] = round(float(r.fit_score), 1)
-            rec["soft_parts"] = {k: dict(points=round(contrib.get(k, 0), 2), weight=w[k]) for k in SOFT}
-            rec["soft"] = soft_by.get(r.business_id, {})
+        rec["fit"] = round(float(r.fit_score), 1)
+        rec["soft_parts"] = {k: dict(points=round(contrib.get(k, 0), 2), weight=w[k]) for k in SOFT}
+        rec["soft"] = soft_by.get(r.business_id, {})
         rows.append(rec)
 
     # rows of connections.csv that matched no business on the page (most real
@@ -171,17 +195,17 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
             unmatched.append(dict(match=key, kind=row.get("kind", ""), note=row.get("note", "")))
 
     sources = set(biz.source.dropna())
-    models = sorted(set(sf.model.dropna())) if lab else []
+    models = sorted(set(sf.model.dropna()))
     updated = str(sc.computed_at.max())[:10] if len(sc) else None
     nav = [{"label": "Sponsors", "href": "#", "current": True}]
     if scouting_link:
         nav.insert(0, {"label": "Forwards", "href": scouting_link, "current": False})
     return dict(
-        lab=lab, updated=updated,
+        updated=updated,
         demo=not sources or sources <= {"demo", "synthetic", "fixture"},
         soft_models=models,
         stadium=cfg.get("ingest", {}).get("stadium", {}).get("name", "the ground"),
-        weights={k: w[k] for k in HARD + (SOFT if lab else [])},
+        weights={k: w[k] for k in HARD + SOFT},
         sectors=[dict(key=k, label=SECTOR_LABELS.get(k, k), propensity=v)
                  for k, v in cfg["sector_propensity"].items() if k != "unknown"],
         nav=nav, businesses=rows,
@@ -189,6 +213,8 @@ def build_payload(conn, cfg, lab: bool, scouting_link: str | None) -> dict:
         decay_km=cfg["proximity"]["decay_km"],
         connections_unmatched=unmatched,
         offers_source=(cfg.get("offers") or {}).get("source"),
+        ons=ons_rows_used(est),
+        accounts_read=bool(len(est)),
     )
 
 
@@ -210,18 +236,19 @@ def main():
         raise SystemExit(f"{TEMPLATE} is missing the data marker {MARK}")
 
     os.makedirs(a.out, exist_ok=True)
-    for lab, out in ((False, "index.html"), (True, "lab.html")):
-        data = build_payload(conn, cfg, lab, a.scouting_link)
-        payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-        payload = payload.replace("</", "<\\/")          # safe inside <script>
-        with open(os.path.join(a.out, out), "w", encoding="utf-8") as f:
-            f.write(html.replace(MARK, payload, 1))
+    data = build_payload(conn, cfg, a.scouting_link)
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    payload = payload.replace("</", "<\\/")              # safe inside <script>
+    with open(os.path.join(a.out, "index.html"), "w", encoding="utf-8") as f:
+        f.write(html.replace(MARK, payload, 1))
+    with open(os.path.join(a.out, "lab.html"), "w", encoding="utf-8") as f:
+        f.write(REDIRECT)
     conn.close()
     if os.path.exists("crest.png"):
         shutil.copy("crest.png", os.path.join(a.out, "crest.png"))
 
     kb = os.path.getsize(os.path.join(a.out, "index.html")) // 1024
-    print(f"wrote {a.out}/index.html (shipped) and {a.out}/lab.html (prototype), {kb} KB: "
+    print(f"wrote {a.out}/index.html ({kb} KB) and a lab.html redirect: "
           f"{len(data['businesses'])} businesses, data as of {data['updated']}"
           f"{'  [DEMO DATA]' if data['demo'] else ''}")
 

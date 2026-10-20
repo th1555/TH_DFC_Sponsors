@@ -44,15 +44,16 @@ def load_published(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src", default="lab.html", help="a published lab.html (has the soft readings)")
+    ap.add_argument("--src", default="index.html",
+                    help="a published page that carries the website readings (index.html since Phase 2, or an old lab.html)")
     ap.add_argument("--out", default="site")
     ap.add_argument("--db", default="sponsor_repaired.db")
     a = ap.parse_args()
 
     cfg = ss.load_config()
     data = load_published(a.src)
-    if not data.get("lab"):
-        raise SystemExit("use the lab page as --src: it carries the website readings too")
+    if not data.get("lab") and not any(b.get("soft") for b in data["businesses"]):
+        raise SystemExit("this page has no website readings: use a Phase 2 index.html or an old lab.html")
     rows = data["businesses"]
 
     stats = dict(total=len(rows), outside=0, unlinked=0, chains=0, resectored=0)

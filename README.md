@@ -34,8 +34,8 @@ queue the club works top-down. The tool proposes; a person owns every contact.
                        WALLED human table (outreach_status) a re-score can't touch
         │
         ▼
-  export_sponsor_site.py   the club website: one static page in the Sons
-                           Scouting design, plus a lab page for the prototype parts
+  export_sponsor_site.py   the club website: one static hub page in the Sons
+                           Scouting design, every value tagged by its source
 ```
 
 `sponsor_pipeline.py` runs the whole chain and builds `sponsor.db`. `outreach.py`
@@ -68,7 +68,7 @@ python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activa
 pip install -r requirements.txt
 
 python sponsor_pipeline.py        # build sponsor.db (offline, demo businesses)
-python export_sponsor_site.py     # write site/index.html and site/lab.html
+python export_sponsor_site.py     # write site/index.html (+ a lab.html redirect)
 ```
 
 Open `site/index.html` in a browser. Demo data is labelled as such on the page.
@@ -79,15 +79,23 @@ Same design, structure and conventions as Sons Scouting, so the two read as one
 product: the ranked list with filters, a table and a "map of fit" chart, CSV
 download, and a profile for each business showing where its points come from.
 
-It follows the same **shipped / lab split**:
+Since Phase 2 it's **one hub page** (the old lab page was merged in; `lab.html` now
+redirects). Facts and judgments sit side by side, each labelled with where it came from:
 
-- **`site/index.html` (shipped)** shows recorded facts only (distance, sector,
-  company record) and the **Local fit** built from them: distance, sector,
-  trading record and size, scaled to 100.
-- **`site/lab.html` (prototype)** adds the website readings (local roots, fit
-  with a town club, community support) and the **Fit score** that includes them.
-  Same login, not linked from the main page. The readings are judgments, and on
-  the keyword proxy they are rough, so they stay off the page the club relies on.
+| Tag | Meaning |
+|---|---|
+| **Reported** | a filed or published record (Companies House, the club's own pages) |
+| **Estimate** | worked out by us, with the working shown (revenue from ONS averages) |
+| **AI reading** | judged by the AI model from the business's own website |
+| **Possible lead** | spotted by AI, not yet confirmed by a person; not scored |
+| **Not available** | we don't have it, and the page says why |
+
+The headline **Fit score** (out of 100) keeps the two kinds of evidence apart: 56 points
+from records (distance or a local connection, sector, trading record, size) and 44 from
+the AI website readings. The table bar shows them solid and striped, every profile
+breaks them down, and a "Records only" column ranks on facts alone. Employees and
+revenue are shown for context and don't change the score. If the readings came from the
+offline keyword stand-in instead of the AI model, the page says so at the top.
 
 ## Recording outreach
 
@@ -159,7 +167,7 @@ To fix an already-published dataset without re-calling the APIs (it only removes
 relabels data, never adds it):
 
 ```bash
-python repair_published_data.py --src lab.html --out site
+python repair_published_data.py --src index.html --out site   # or an old lab.html
 ```
 
 A fresh live run (`--real --api --llm`) is still better: it can find the *right*
@@ -200,8 +208,8 @@ Update the prices each season.
 engineering, gas, tools, tiling) were never searched for. A new
 `industrial_b2b_services` sector and six new seed queries cover them. The AI step also
 reads a fourth, **unscored** judgment, `local_connection` (does the website name
-Dumbarton FC, a team it sponsors, or similar?). Strong evidence appears on the lab page
-as a lead to confirm; once a person adds it to `connections.csv`, it counts.
+Dumbarton FC, a team it sponsors, or similar?). Strong evidence appears on the profile
+as a **Possible lead**; once a person tags it or adds it to `connections.csv`, it counts.
 
 Extra signals now collected on a live run: Google rating and review count (shown and in
 the CSV, not scored yet), and local directors (above).
@@ -286,7 +294,7 @@ whichever repo holds `site/` private. `sponsor.db` itself is never committed.
 | `sponsor_db.py` | SQLite store with the walled human layer |
 | `sponsor_pipeline.py` | Orchestrator — builds `sponsor.db` end to end |
 | `sponsor_site.html` | The website design (data is injected at export) |
-| `export_sponsor_site.py` | Builds `site/index.html` (shipped) and `site/lab.html` (prototype) |
+| `export_sponsor_site.py` | Builds the hub page `site/index.html` (and a `lab.html` redirect) |
 | `outreach.py` | Records outreach status and notes (the walled human table) |
 | `ingest_accounts.py` | Employees and turnover from filed accounts (machine-readable iXBRL) |
 | `revenue_estimate.py` | Employee/revenue bands; reported, else estimate with working, else not available |

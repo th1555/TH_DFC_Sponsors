@@ -208,6 +208,7 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
 .pb .pv small{color:var(--faint);font-weight:400}
 .pb .k small{display:block;color:var(--faint);font-size:12.5px}
 .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.facts.two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .facts div{padding:10px 12px;border-left:1px solid var(--line)}
 .facts div:first-child{border-left:0}
 .facts b{display:block;font-size:19px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
@@ -226,6 +227,31 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
 .reading q{display:block;margin:6px 0 0;font-size:14px;color:var(--muted);quotes:"“" "”"}
 .conf{font-size:12.5px;color:var(--faint);font-weight:400}
 .caveat{font-size:14px;color:var(--muted);border-left:3px solid var(--gold);padding:4px 0 4px 12px;margin:0}
+
+/* ---------- source tags: where every value comes from ---------- */
+.src{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.35px;text-transform:uppercase;border-radius:3px;padding:1px 6px;vertical-align:1px;white-space:nowrap;line-height:1.5}
+.src.rep{background:#E3EFE6;color:#1D5130}
+.src.est{background:#FFF3C4;color:#5E4500;box-shadow:inset 0 0 0 1px #E8CF73}
+.src.ai{background:#E6EAF5;color:#283C74}
+.src.lead{background:#fff;color:#8A4B00;box-shadow:inset 0 0 0 1px #E0A060}
+.src.na{background:#EEF0F2;color:#5B636B}
+.srckey{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin:0 0 18px;font-size:14px;color:var(--muted)}
+.srckey > b{color:var(--ink);font-weight:700;margin-right:2px}
+.srckey span{display:inline-flex;gap:6px;align-items:center}
+.score i s.ai{background:repeating-linear-gradient(45deg,#9AA2A9 0 3px,#C5CBD0 3px 5px);border-radius:0 2px 2px 0}
+.score i s.rec{border-radius:0}
+.est-tag{font-size:11px;font-weight:700;color:#5E4500;background:#FFF3C4;border-radius:3px;padding:0 4px;margin-left:5px;vertical-align:1px}
+.working{background:var(--bg);border-radius:6px;padding:10px 14px;margin:10px 0 0;font-size:14.5px}
+.working b{display:block;color:var(--ink);margin-bottom:2px}
+.working a{color:#1F5FAF}
+.facts .why{display:block;font-size:12.5px;color:var(--faint);margin-top:2px;line-height:1.3}
+.pbhead{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 2px;display:flex;justify-content:space-between}
+.pbhead:first-of-type{margin-top:0}
+.pbhead span:last-child{white-space:nowrap;margin-left:10px}
+table.ons{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 4px}
+table.ons th,table.ons td{border-bottom:1px solid var(--line);padding:6px 6px;text-align:right}
+table.ons th:first-child,table.ons td:first-child{text-align:left}
+table.ons th{font-size:12.5px;color:var(--muted)}
 
 /* ---------- responsive ---------- */
 @media (max-width:1300px){ .hide-l{display:none} }
@@ -314,13 +340,23 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
         <p class="hint">Distance is scored, not cut off: a business with a recorded local connection keeps its points wherever it is.</p>
       </div>
       <div class="fgroup">
-        <span class="flabel" id="sizeL">Company size</span>
-        <div class="seg" id="sizeSeg" role="group" aria-labelledby="sizeL">
-          <button type="button" data-v="" aria-pressed="true">Any</button>
-          <button type="button" data-v="small" aria-pressed="false">Small +</button>
-          <button type="button" data-v="medium" aria-pressed="false">Medium +</button>
+        <span class="flabel" id="empL">Employees</span>
+        <div class="seg" id="empSeg" role="group" aria-labelledby="empL">
+          <button type="button" data-v="0" aria-pressed="true">Any</button>
+          <button type="button" data-v="10" aria-pressed="false">10+</button>
+          <button type="button" data-v="50" aria-pressed="false">50+</button>
         </div>
-        <p class="hint">From Companies House accounts. Size counts for little in the ranking, on purpose.</p>
+        <p class="hint">Reported in filed accounts. Choosing a band hides businesses with no figure.</p>
+      </div>
+      <div class="fgroup">
+        <label class="flabel" for="fRev">Revenue</label>
+        <select id="fRev">
+          <option value="0">Any revenue</option>
+          <option value="1">£250k or more</option>
+          <option value="2">£1m or more</option>
+          <option value="3">£5m or more</option>
+        </select>
+        <p class="hint">Reported where filed, otherwise an estimate (both count here). Size counts for little in the ranking, on purpose.</p>
       </div>
       <div class="fgroup">
         <label class="flabel" for="fStatus">Outreach</label>
@@ -400,17 +436,22 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
       <h2>Limitations</h2>
       <div class="limits">
         <div><h3>Records, not relationships</h3><p>The tool knows where a business is, what it does and what Companies House holds on it. It can't see the owner, their budget, whether they already back another club, or who at Dumbarton knows them. A phone call will tell you more than any score here.</p></div>
-        <div><h3>Registered companies only</h3><p>Sole traders and partnerships aren't on Companies House, so many chippies, trades and shops show as Unclassified and score lower on trading record than they deserve. A registered office can also be the accountant's address, not the shop.</p></div>
+        <div><h3>Registered companies only</h3><p>Sole traders and partnerships aren't on Companies House, so many chippies, trades and shops show as Unclassified, score lower on trading record than they deserve, and have no employee or revenue figures. A registered office can also be the accountant's address, not the shop.</p></div>
+        <div><h3>Estimates are averages</h3><p>An estimated revenue is the typical turnover for that industry and size, the same for every similar firm. It says roughly what scale of business this is, not what this business earns.</p></div>
+        <div><h3>AI readings are judgments</h3><p>The website readings are made by an AI model from the business's own homepage and haven't been checked by a person. A thin or missing website holds a reading at the middle so it can't help or hurt.</p></div>
         <div><h3>A set of choices, not a measurement</h3><p>The weights put local ties ahead of size, and the sector rates are hand-set from how lower-league clubs are usually sponsored. Both are judgments the club can change. Treat close scores as a tie.</p></div>
       </div>
     </section>
     </div>
-    <section class="card" style="align-self:start">
+    <div style="display:grid;gap:20px;align-content:start">
+    <section class="card">
       <h2>How sectors compare</h2>
       <p style="font-size:14.5px;color:var(--muted)">How often each kind of business sponsors a club like Dumbarton, on a 0 to 1 scale. The line marks the middle.</p>
       <div id="sectorBars"></div>
       <p class="hint" style="margin-top:10px">Hand-set for now. The planned lookalike engine will learn these from who actually sponsors clubs like Dumbarton across Scotland.</p>
     </section>
+    <section class="card" id="sizeMethod"></section>
+    </div>
   </div>
 
   <footer id="foot"></footer>
@@ -421,7 +462,6 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
 
 <script>
 const DATA = /*__DATA__*/null;
-const LAB = !!DATA.lab;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -435,6 +475,10 @@ const STATUS = {"new":"Not contacted","to-approach":"To approach","contacted":"C
 const LIVE = new Set(["to-approach","contacted","in-talks"]);
 const SIZE = {micro:"Micro",small:"Small",medium:"Medium",large:"Large",unknown:"Not known"};
 const SIZE_RANK = {micro:1,small:2,medium:3,large:4,unknown:0};
+const REV_RANK = {"Under £250k":0,"£250k–£1m":1,"£1m–£5m":2,"£5m+":3};
+const SRC = {reported:["rep","Reported"], estimate:["est","Estimate"], ai:["ai","AI reading"], lead:["lead","Possible lead"], not_available:["na","Not available"]};
+const srcTag = (k, extra) => { const [c,l] = SRC[k] || SRC.not_available; return `<span class="src ${c}"${extra ? ` title="${esc(extra)}"` : ""}>${l}</span>`; };
+const SZ = b => b.size || {employees_basis:"not_available", revenue_basis:"not_available", employees_note:"Not read yet"};
 const NONLOCAL = new Set(["national_chain","online_ecommerce"]);
 const PART = {
   proximity:          ["Local presence", "distance from the ground, or a recorded local connection"],
@@ -444,7 +488,7 @@ const PART = {
   community_affinity: ["Local roots", "read from its own website"],
   brand_fit:          ["Fit with a town club", "read from its own website"],
   csr_signal:         ["Community support", "read from its own website"],
-  local_connection:   ["Sponsorship / club link (not scored)", "a lead for a person to confirm"],
+  local_connection:   ["Sponsorship or club link", "not scored: a lead for a person to confirm"],
 };
 const SHORT_AP = {"Partner (not paid sponsor)":"Partner","Low priority":"Low priority"};
 const apKind = b => SHORT_AP[b.approach.kind] || b.approach.kind;
@@ -452,9 +496,17 @@ const town = b => { const a = String(b.address||"").split(",").map(s=>s.trim()).
 const KEYWORD = (DATA.soft_models||[]).some(m => /stub|keyword/i.test(m));
 
 /* ---------- the businesses ---------- */
-const BIZ = DATA.businesses.map(b => ({...b, score: LAB ? b.fit : b.local_fit,
-  townName: town(b), years: b.company_age || null, sizeRank: SIZE_RANK[b.size_band] ?? 0}));
-const SCORE_NAME = LAB ? "Fit score" : "Local fit";
+const BIZ = DATA.businesses.map(b => { const z = SZ(b); return {...b, score: b.fit,
+  townName: town(b), years: b.company_age || null, sizeRank: SIZE_RANK[b.size_band] ?? 0,
+  empN: z.employees_basis === "reported" ? z.employees : null,
+  empRank: z.employees_basis === "reported" ? z.employees : -1,
+  revRank: z.revenue_band in REV_RANK ? REV_RANK[z.revenue_band] : -1}; });
+const SCORE_NAME = "Fit score";
+const SOFT_K = ["community_affinity","brand_fit","csr_signal"];
+const recPts = b => ["proximity","sector_propensity","company_stability","ability_to_pay"].reduce((a,k) => a + (b.parts[k]?.points || 0), 0);
+const aiPts = b => SOFT_K.reduce((a,k) => a + (b.soft_parts?.[k]?.points || 0), 0);
+const REC_TOT = ["proximity","sector_propensity","company_stability","ability_to_pay"].reduce((a,k) => a + (DATA.weights[k] || 0), 0);
+const AI_TOT = SOFT_K.reduce((a,k) => a + (DATA.weights[k] || 0), 0);
 
 /* ---------- club tags: saved in this browser, downloadable as connections.csv ---------- */
 const TAG_KEY = "sons-sponsors-tags-v1";
@@ -482,8 +534,8 @@ function applyTag(b){
   b.parts = {...b.parts, proximity: prox};
   const hardTot = HARD_K.reduce((a,k) => a + W[k], 0);
   b.local_fit = 100 * HARD_K.reduce((a,k) => a + b.parts[k].points, 0) / hardTot;
-  if (LAB) b.fit = base.fit - base.prox.points + prox.points;
-  b.score = LAB ? b.fit : b.local_fit;
+  b.fit = base.fit - base.prox.points + prox.points;
+  b.score = b.fit;
   const k = b.connection && b.connection.kind;
   b.approach = RELN_AP[k] || (t ? (base.connection && RELN_AP[base.connection.kind] ? {kind:"Review", detail:"relationship cleared; reassess"} : base.approach) : base.approach);
 }
@@ -494,12 +546,19 @@ setTopCut();
 
 /* ---------- header, notices, KPIs ---------- */
 $("nav").innerHTML = (DATA.nav||[]).map(n => `<a href="${esc(n.href)}"${n.current ? ' aria-current="page"' : ""}>${esc(n.label)}</a>`).join("");
-$("asof").innerHTML = (LAB ? `<span class="labtag">Lab</span>&nbsp; ` : "") + (DATA.updated ? `Data to <b>${esc(niceDate(DATA.updated))}</b>` : "");
+$("asof").innerHTML = DATA.updated ? `Data to <b>${esc(niceDate(DATA.updated))}</b>` : "";
 const ICON = `<svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="8.5" width="2" height="6" fill="currentColor"/><rect x="9" y="5" width="2" height="2" fill="currentColor"/></svg>`;
 let notes = "";
 if (DATA.demo) notes += `<div class="notice demo" role="note">${ICON}<div><b>Demo data.</b> Every business on this page is invented to show how the tool works. Run the pipeline with the live APIs to see real businesses around ${esc(DATA.stadium)}.</div></div>`;
-if (LAB) notes += `<div class="notice lab" role="note">${ICON}<div><b>Prototype.</b> This page adds a reading of each business's own website (local roots, fit with a town club, community support) to the score. ${KEYWORD ? "The readings come from a keyword count, not real reading, so treat them as rough." : "The readings are made by an AI model from the website text and haven't been checked by a person."} The main page leaves them out.</div></div>`;
-notes += `<div class="notice" role="note">${ICON}<div><b>A ranking for deciding who to approach first.</b> It knows location, sector and company records. It can't see the owner, their budget or whether they already sponsor someone. Use it to plan calls, not to judge a business.</div></div>`;
+if (KEYWORD) notes += `<div class="notice demo" role="note">${ICON}<div><b>Rough website readings.</b> The AI readings on this page come from a keyword count standing in for the AI model, not a real reading of each website. Treat them as rough until the list is rebuilt with the AI step switched on.</div></div>`;
+if (!DATA.accounts_read) notes += `<div class="notice" role="note">${ICON}<div><b>Employees and revenue not read yet.</b> This list was built before the filed-accounts step was switched on, so those columns show Not available. They fill in at the next refresh.</div></div>`;
+notes += `<div class="notice" role="note">${ICON}<div><b>A ranking for deciding who to approach first.</b> It knows location, sector, company records and what each business says on its own website. It can't see the owner, their budget or every club they back. Use it to plan calls, not to judge a business.</div></div>`;
+notes += `<div class="srckey" role="note"><b>Where each value comes from:</b>
+  <span>${srcTag("reported")} a filed or published record</span>
+  <span>${srcTag("estimate")} worked out by us, with the working shown</span>
+  <span>${srcTag("ai")} judged from the business's own website</span>
+  <span>${srcTag("lead")} spotted by AI, not yet confirmed</span>
+  <span>${srcTag("not_available")} we don't have it</span></div>`;
 $("notices").innerHTML = notes;
 const within5 = BIZ.filter(b => b.distance_km != null && b.distance_km <= 5).length;
 function drawKpis(){
@@ -511,7 +570,7 @@ function drawKpis(){
     .map(([v,k]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("");
 }
 drawKpis();
-$("foot").textContent = `Businesses from Google Places. Company records from Companies House.${LAB ? " Website readings from each business's own homepage." : ""} Scores are estimates calculated from those records. Sons Sponsors, built for Dumbarton FC.`;
+$("foot").textContent = `Businesses from Google Places. Company records, employees and reported turnover from Companies House. Revenue estimates from the ONS Annual Business Survey. AI readings from each business's own homepage. Scores are estimates calculated from those sources. Sons Sponsors, built for Dumbarton FC.`;
 
 /* ---------- table head ---------- */
 const COLS = [
@@ -519,9 +578,10 @@ const COLS = [
   {k:"name", th:"Business", cls:"l"},
   {k:"distance_km", th:"Distance", cls:"hide-m", grp:"rec"},
   {k:"years", th:"Trading", cls:"hide-m", grp:"rec"},
-  {k:"sizeRank", th:"Size", cls:"l hide-m", grp:"rec"},
-  ...(LAB ? [{k:"local_fit", th:"Records only", cls:"hide-m", grp:"fit"}] : []),
-  {k:"score", th: LAB ? "With website" : "Out of 100", cls:"l2c", grp:"fit"},
+  {k:"empRank", th:"Employees", cls:"l hide-m", grp:"rec"},
+  {k:"revRank", th:"Revenue", cls:"l hide-m", grp:"rec"},
+  {k:"local_fit", th:"Records only", cls:"hide-m hide-l", grp:"fit"},
+  {k:"score", th:"Out of 100", cls:"l2c", grp:"fit"},
   {k:"approach", th:"Approach", cls:"l hide-m"},
   {k:"status", th:"Outreach", cls:"l"},
 ];
@@ -539,7 +599,7 @@ function fixGroups(){
 /* ---------- filters ---------- */
 const SECTORS = [...new Set(BIZ.map(b => b.sector))].sort((a,b) => BIZ.filter(x=>x.sector===b).length - BIZ.filter(x=>x.sector===a).length);
 const LABEL_OF = Object.fromEntries(BIZ.map(b => [b.sector, b.sector_label]));
-const DEF = {secs:null, dist:0, size:"", status:"", q:"", hideNonLocal:true, hideDormant:false, onlyConn:false, hideSpon:true, hideNotFit:true, sort:"score", dir:-1};
+const DEF = {secs:null, dist:0, emp:0, rev:0, status:"", q:"", hideNonLocal:true, hideDormant:false, onlyConn:false, hideSpon:true, hideNotFit:true, sort:"score", dir:-1};
 const connLabel = b => b.connection ? (KIND_LABEL[b.connection.kind] || "Local connection") : "";
 const S = {...DEF, secs: new Set(SECTORS)};
 $("secBox").innerHTML = SECTORS.map(s => `<label class="chk"><input type="checkbox" data-s="${esc(s)}" checked> ${esc(LABEL_OF[s])} <span class="c">${BIZ.filter(b=>b.sector===s).length}</span></label>`).join("");
@@ -548,16 +608,17 @@ function syncControls(){
   $("fDist").value = S.dist; $("fStatus").value = S.status; $("fSearch").value = S.q;
   $("fLocal").checked = S.hideNonLocal; $("fDormant").checked = S.hideDormant; $("fConn").checked = S.onlyConn;
   $("fSpon").checked = S.hideSpon; $("fNotFit").checked = S.hideNotFit;
-  document.querySelectorAll("#sizeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.size)));
+  $("fRev").value = S.rev;
+  document.querySelectorAll("#empSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === S.emp)));
   document.querySelectorAll("#secBox input").forEach(i => i.checked = S.secs.has(i.dataset.s));
 }
 function visible(){
   const q = S.q.trim().toLowerCase();
-  const minSize = S.size === "medium" ? 3 : S.size === "small" ? 2 : 0;
   const list = BIZ.filter(b =>
     S.secs.has(b.sector) &&
     (!S.dist || (b.distance_km != null && b.distance_km <= S.dist)) &&
-    b.sizeRank >= minSize &&
+    (!S.emp || (b.empN != null && b.empN >= S.emp)) &&
+    (!S.rev || b.revRank >= S.rev) &&
     (!S.status || (S.status === "live" ? LIVE.has(b.status) : b.status === S.status)) &&
     (!S.hideNonLocal || !NONLOCAL.has(b.sector)) &&
     (!S.hideDormant || !b.dormant) &&
@@ -570,12 +631,17 @@ function visible(){
   return list.sort((a,b) => { const x = key(a), y = key(b);
     return (x < y ? -1 : x > y ? 1 : 0) * S.dir || b.score - a.score; });
 }
-const SORTNAME = {name:"name", distance_km:"distance", sector_label:"sector", years:"years trading", sizeRank:"size",
-  local_fit:"Local fit (records only)", score: LAB ? "fit score with website" : "Local fit", approach:"approach", status:"outreach"};
+const SORTNAME = {name:"name", distance_km:"distance", sector_label:"sector", years:"years trading", empRank:"employees", revRank:"revenue",
+  local_fit:"records only", score:"Fit score", approach:"approach", status:"outreach"};
 
 /* ---------- render ---------- */
 let LIST = [];
-const scoreCell = v => `<span class="score">${f0(v)}<i><s class="${v >= topCut ? "top" : ""}" style="width:${Math.max(2, v)}%"></s></i></span>`;
+const scoreCell = b => { const rp = recPts(b), ap = Math.max(0, b.score - rp);
+  return `<span class="score" title="${f0(rp)} from records + ${f0(ap)} from AI readings">${f0(b.score)}<i><s class="rec ${b.score >= topCut ? "top" : ""}" style="width:${Math.max(2, rp)}%"></s><s class="ai" style="left:${rp}%;width:${ap}%"></s></i></span>`; };
+const empCell = b => { const z = SZ(b); return z.employees_basis === "reported" ? esc(z.employees_band) : `<span class="dim" title="${esc(z.employees_note || "")}">–</span>`; };
+const revCell = b => { const z = SZ(b); return z.revenue_basis === "reported" ? esc(z.revenue_band)
+  : z.revenue_basis === "estimate" ? `${esc(z.revenue_band)}<span class="est-tag" title="Estimate: typical turnover for this industry and size">est.</span>`
+  : `<span class="dim" title="${esc(z.revenue_working || "")}">–</span>`; };
 function render(){
   LIST = visible();
   document.querySelectorAll("#head th[data-sort]").forEach(th =>
@@ -589,13 +655,14 @@ function render(){
         <td class="rk">${i+1}</td>
         <td class="l pl"><span class="nm">${esc(b.name)}</span>${b.connection ? `<span class="warm">${esc(connLabel(b))}</span>` : b.warm_intro ? `<span class="warm">Warm path</span>` : ""}
           <span class="cl">${esc(b.sector_label)}${b.townName ? " · " + esc(b.townName) : ""}</span>
-          <span class="mob">${km(b.distance_km)} · ${b.years ? b.years + " yrs trading · " : ""}${esc(SIZE[b.size_band]||"")} · ${esc(apKind(b))}</span>
+          <span class="mob">${km(b.distance_km)} · ${b.years ? b.years + " yrs trading · " : ""}${b.empN != null ? esc(SZ(b).employees_band) + " staff · " : ""}${SZ(b).revenue_band ? esc(SZ(b).revenue_band) + (SZ(b).revenue_basis === "estimate" ? " est." : "") + " · " : ""}${esc(apKind(b))}</span>
           ${b.flags.length ? `<span class="fl">Check: ${esc(b.flags.join("; "))}</span>` : ""}</td>
         <td class="hide-m">${km(b.distance_km)}</td>
         <td class="hide-m">${b.years ? b.years + " yrs" : '<span class="dim">–</span>'}</td>
-        <td class="l hide-m">${b.size_band && b.size_band !== "unknown" ? esc(SIZE[b.size_band]) : '<span class="dim">Not known</span>'}</td>
-        ${LAB ? `<td class="hide-m">${f0(b.local_fit)}</td>` : ""}
-        <td class="l2c main">${scoreCell(b.score)}</td>
+        <td class="l hide-m">${empCell(b)}</td>
+        <td class="l hide-m">${revCell(b)}</td>
+        <td class="hide-m hide-l">${f0(b.local_fit)}</td>
+        <td class="l2c main">${scoreCell(b)}</td>
         <td class="l hide-m ap"><b>${esc(apKind(b))}</b></td>
         <td class="l"><span class="st ${esc(b.status)}">${esc(STATUS[b.status] || b.status)}</span></td>
       </tr>`).join("");
@@ -603,7 +670,7 @@ function render(){
   fixGroups();
   if (!$("viewC").hidden) drawScatter();
 }
-$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;${LAB ? "Local fit plus the website readings, out of 100." : "local presence, sector, trading record and size, weighted and scaled to 100."} Gold bar: top 10% of this list.</span><span><span class="warm" style="margin:0">Tag</span>&nbsp;a recorded local connection: current sponsor, warm path, or a director based locally. It counts as local presence.</span>`;
+$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;out of 100. Solid bar: points from records (${REC_TOT} available). Striped: points from AI readings of the business's website (${AI_TOT} available). Gold: top 10% of this list.</span><span><span class="est-tag" style="margin:0">est.</span>&nbsp;revenue estimated from the typical turnover for that industry and size. "–" means we don't have it; hover for why.</span><span><span class="warm" style="margin:0">Tag</span>&nbsp;a recorded local connection: current sponsor, warm path, or a director based locally. It counts as local presence.</span>`;
 
 /* ---------- events ---------- */
 $("head").onclick = e => {
@@ -616,7 +683,8 @@ $("secBox").onchange = e => { const s = e.target.dataset.s; if (!s) return;
   e.target.checked ? S.secs.add(s) : S.secs.delete(s); render(); };
 $("secAll").onclick = () => { S.secs = new Set(SECTORS); syncControls(); render(); };
 $("secNone").onclick = () => { S.secs = new Set(); syncControls(); render(); };
-$("sizeSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.size = b.dataset.v; syncControls(); render(); };
+$("empSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.emp = +b.dataset.v; syncControls(); render(); };
+$("fRev").onchange    = e => { S.rev = +e.target.value; render(); };
 $("fDist").onchange   = e => { S.dist = +e.target.value; render(); };
 $("fStatus").onchange = e => { S.status = e.target.value; render(); };
 $("fSearch").oninput  = e => { S.q = e.target.value; render(); };
@@ -661,17 +729,27 @@ $("tabT").onclick = () => setTab(false); $("tabC").onclick = () => setTab(true);
 window.addEventListener("resize", () => { fixGroups(); if (!$("viewC").hidden) drawScatter(); });
 
 $("download").onclick = () => {
-  const cols = ["Rank","Business","Sector","Address","Distance from ground (km)","Years trading","Size (Companies House)",
-    "Accounts dormant","Companies House number","Website", ...(LAB ? ["Local fit (records only)","Fit score (with website)"] : ["Local fit"]),
+  const SB = {reported:"Reported", estimate:"Estimate", not_available:"Not available"};
+  const rd = (b,k) => b.soft && b.soft[k] ? `${b.soft[k].value.toFixed(2)} (${Math.round(b.soft[k].confidence*100)}% sure)` : "";
+  const cols = ["Rank","Business","Sector","Address","Distance from ground (km)","Years trading","Accounts size (Companies House)",
+    "Accounts dormant","Companies House number","Website",
+    "Employees (band)","Employees (reported figure)","Employees source","Employees note",
+    "Revenue (band)","Revenue source","Revenue figure used (GBP)","ONS average used (GBP)","ONS source","Revenue working","Accounts on Companies House",
+    "Fit score","Points from records","Points from AI readings","Records only (scaled to 100)",
+    "AI reading: local roots","AI reading: fit with a town club","AI reading: community support","Possible leads",
     "Suggested approach","Approach detail","Warm path","Local connection","Google reviews","Google rating","Checks","Outreach status","Owner","Notes"];
-  const rows = LIST.map((b,i) => [i+1, b.name, b.sector_label, b.address, b.distance_km, b.years ?? "", SIZE[b.size_band] || "",
-    b.dormant ? "Yes" : "No", b.company_number || "", b.website || "", ...(LAB ? [f0(b.local_fit), f0(b.fit)] : [f0(b.local_fit)]),
+  const rows = LIST.map((b,i) => { const z = SZ(b); return [i+1, b.name, b.sector_label, b.address, b.distance_km, b.years ?? "", SIZE[b.size_band] || "",
+    b.dormant ? "Yes" : "No", b.company_number || "", b.website || "",
+    z.employees_band || "", z.employees ?? "", SB[z.employees_basis] || "", z.employees_note || "",
+    z.revenue_band || "", SB[z.revenue_basis] || "", z.revenue_value ?? "", z.est_avg_turnover ?? "", z.est_source || "", z.revenue_working || "", z.accounts_source || "",
+    f0(b.fit), recPts(b).toFixed(1), aiPts(b).toFixed(1), f0(b.local_fit),
+    rd(b,"community_affinity"), rd(b,"brand_fit"), rd(b,"csr_signal"), (b.leads || []).join("; "),
     apKind(b), b.approach.detail, b.warm_intro || "", b.connection ? connLabel(b) + ": " + b.connection.note : "",
-    b.google_reviews ?? "", b.google_rating ?? "", b.flags.join("; "), STATUS[b.status] || b.status, b.owner || "", b.notes || ""]);
+    b.google_reviews ?? "", b.google_rating ?? "", b.flags.join("; "), STATUS[b.status] || b.status, b.owner || "", b.notes || ""]; });
   const csv = [cols, ...rows].map(r => r.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], {type:"text/csv"}));
-  a.download = LAB ? "dumbarton-sponsors-lab.csv" : "dumbarton-sponsors.csv"; document.body.appendChild(a); a.click(); a.remove();
+  a.download = "dumbarton-sponsors.csv"; document.body.appendChild(a); a.click(); a.remove();
 };
 
 /* ---------- chart: distance vs fit ---------- */
@@ -736,27 +814,45 @@ function drawScatter(){
 (() => {
   const W = DATA.weights, hard = ["proximity","sector_propensity","company_stability","ability_to_pay"];
   const hardTot = hard.reduce((a,k) => a + W[k], 0);
-  $("mTitle").textContent = LAB ? 'What the scores mean' : 'What "Local fit" means';
-  $("mBody").innerHTML = `<p>Each business is scored on four things it's on record for: <strong>how close it is to the ground, what kind of business it is, how long it has been trading, and its size</strong>. Each gets a share of the points, weighted so that being local counts for most and size for least, and the total is scaled to 100.</p>`
-    + (LAB ? `<p><strong>Fit score</strong>, on this page only, also counts three readings of the business's own website: its local roots, how well backing a town club suits it, and any sign of community support. These carry ${100 - hardTot} of the 100 points. Where a website is thin or missing, the reading is held at the middle so it can't help or hurt.</p>` : "")
-    + `<p>The suggested approach comes from the sector alone: trade businesses tend to want the programme and the website, shops and pubs want to be seen on matchday.</p>`;
-  const ex = [...BIZ].sort((a,b) => b.local_fit - a.local_fit)[0];
+  $("mTitle").textContent = 'What the Fit score means';
+  $("mBody").innerHTML = `<p>The Fit score is out of 100 and comes from two kinds of evidence, kept apart so you can see which is which.</p>`
+    + `<p>${srcTag("reported")} <strong>${hardTot} points from records:</strong> how close the business is to the ground (or a recorded local connection), what kind of business it is, how long it has been trading, and its size. Being local counts for most, size for least.</p>`
+    + `<p>${srcTag("ai")} <strong>${100 - hardTot} points from AI readings</strong> of the business's own website: its local roots, how well backing a town club suits it, and any sign of community support. Where a website is thin or missing, the reading is held at the middle so it can't help or hurt.</p>`
+    + `<p>"Records only" (in the table on wide screens) rescales just the record points to 100, for anyone who wants to rank on facts alone. Employees and revenue are shown for context and don't change the score.</p>`
+    + `<p>The suggested approach comes from the sector and size: trade businesses tend to want the programme and the website, shops and pubs want to be seen on matchday.</p>`;
+  const ex = [...BIZ].sort((a,b) => b.fit - a.fit)[0];
   if (ex){
-    const p = ex.parts, pts = hard.reduce((a,k) => a + p[k].points, 0);
-    $("example").innerHTML = `<b>Example.</b> ${esc(ex.name)}, ${km(ex.distance_km)} away: local presence ${p.proximity.points.toFixed(1)} of ${W.proximity} + sector ${p.sector_propensity.points.toFixed(1)} of ${W.sector_propensity} + trading ${p.company_stability.points.toFixed(1)} of ${W.company_stability} + size ${p.ability_to_pay.points.toFixed(1)} of ${W.ability_to_pay} = ${pts.toFixed(1)} of ${hardTot}, so a Local fit of <b>${f0(ex.local_fit)}</b>.`;
+    const p = ex.parts, pts = hard.reduce((a,k) => a + p[k].points, 0), sp = aiPts(ex);
+    $("example").innerHTML = `<b>Example.</b> ${esc(ex.name)}, ${km(ex.distance_km)} away. From records: local presence ${p.proximity.points.toFixed(1)} of ${W.proximity} + sector ${p.sector_propensity.points.toFixed(1)} of ${W.sector_propensity} + trading ${p.company_stability.points.toFixed(1)} of ${W.company_stability} + size ${p.ability_to_pay.points.toFixed(1)} of ${W.ability_to_pay} = ${pts.toFixed(1)}. From AI readings: ${sp.toFixed(1)} of ${100 - hardTot}. Fit score <b>${f0(ex.fit)}</b>.`;
   }
   const keys = Object.keys(W).sort((a,b) => W[b] - W[a]), max = Math.max(...keys.map(k => W[k]));
-  const scale = LAB ? 100 : hardTot;
+  const scale = 100;
   $("weightBars").innerHTML = keys.map(k => `
     <div class="lg${k === "proximity" ? " base" : ""}${hard.includes(k) ? "" : " soft"}"><span>${esc(PART[k][0])}</span>
       <span class="tr"><i style="width:${(W[k]/max*100).toFixed(1)}%"></i></span>
       <span class="v">${Math.round(W[k]/scale*100)}%</span></div>`).join("")
-    + `<p class="hint" style="margin-top:10px">Share of the ${LAB ? "Fit score" : "Local fit"}.${LAB ? " Striped: read from the website, prototype only." : ""}</p>`;
+    + `<p class="hint" style="margin-top:10px">Share of the Fit score. Striped: AI readings of the business's website.</p>`;
   const secs = [...DATA.sectors].sort((a,b) => b.propensity - a.propensity);
   $("sectorBars").innerHTML = secs.map(s => `
     <div class="lg${s.propensity >= .85 ? " base" : ""}"><span>${esc(s.label)}</span>
       <span class="tr"><i style="width:${(s.propensity*100).toFixed(1)}%"></i><s style="left:50%"></s></span>
       <span class="v">${s.propensity.toFixed(2)}</span></div>`).join("");
+
+  // employees and revenue: how they're worked out, with the ONS lines in use
+  const n = BIZ.length, cnt = f => BIZ.filter(f).length;
+  const nEmp = cnt(b => SZ(b).employees_basis === "reported"), nRep = cnt(b => SZ(b).revenue_basis === "reported"), nEst = cnt(b => SZ(b).revenue_basis === "estimate");
+  const fmtK = v => v >= 1e6 ? "£" + (v/1e6).toFixed(1) + "m" : "£" + Math.round(v/1000) + "k";
+  const ons = DATA.ons || [];
+  $("sizeMethod").innerHTML = `<h2>Employees and revenue</h2>
+    <p style="font-size:14.5px">${srcTag("reported")} <strong>Employees</strong> is the average headcount in the business's latest filed accounts at Companies House, shown as a band. 0 shows as Directors only.</p>
+    <p style="font-size:14.5px">${srcTag("reported")} <strong>Revenue</strong> is the turnover in the filed accounts where the business included it. Most small firms don't have to.</p>
+    <p style="font-size:14.5px">${srcTag("estimate")} Otherwise it's <strong>estimated</strong>: the average turnover of UK businesses in the same industry and employee size band, from the ONS Annual Business Survey. Every similar firm gets the same figure, so it shows scale, not this firm's earnings. Each profile shows the working.</p>
+    <p style="font-size:14.5px">${srcTag("not_available")} No company record (sole traders, partnerships), paper-only accounts or no headcount means no figure. Finance, public bodies, and GP, medical and dental practices aren't in the ONS survey, so they get no estimate.</p>
+    <p class="hint">On this list: employees for ${nEmp} of ${n}; revenue reported for ${nRep}, estimated for ${nEst}.</p>`
+    + (ons.length ? `<h3>ONS averages used on this page</h3>
+    <table class="ons"><thead><tr><th>Industry</th><th>Size band</th><th>Average turnover</th><th>Businesses</th></tr></thead><tbody>
+    ${ons.map(o => `<tr><td>${esc(o.name.charAt(0).toUpperCase() + o.name.slice(1))}</td><td>${esc(o.band)}</td><td class="num">${fmtK(o.avg)}</td><td class="num">${o.businesses.toLocaleString("en-GB")}</td></tr>`).join("")}
+    </tbody></table><p class="hint">UK totals for ${esc(ons[0].year)}: total turnover ÷ number of businesses, from the same line of the ONS size-band table.</p>` : "");
 })();
 
 /* ---------- business profile ---------- */
@@ -783,7 +879,8 @@ function openBiz(n, from){
       <div class="tags">
         <span><b>${km(b.distance_km)}</b> from the ground</span>
         ${b.years ? `<span>Trading <b>${b.years} yrs</b></span>` : ""}
-        <span>Size: <b>${esc(SIZE[b.size_band] || "Not known")}</b></span>
+        ${SZ(b).employees_basis === "reported" ? `<span>Employees: <b>${esc(SZ(b).employees_band)}</b></span>` : ""}
+        ${SZ(b).revenue_band ? `<span>Revenue: <b>${esc(SZ(b).revenue_band)}</b>${SZ(b).revenue_basis === "estimate" ? " (est.)" : ""}</span>` : ""}
         ${b.warm_intro ? `<span class="hl">Warm path: <b>${esc(b.warm_intro)}</b></span>` : ""}
         ${b.connection && b.connection.kind !== "warm_intro" ? `<span class="hl">${esc(connLabel(b))}</span>` : ""}
         ${b.google_reviews ? `<span>Google: <b>${b.google_rating != null ? Number(b.google_rating).toFixed(1) + "★" : ""}</b> from ${b.google_reviews} reviews</span>` : ""}
@@ -793,18 +890,21 @@ function openBiz(n, from){
     <div class="d-body">
       <section class="dcard">
         <h3>${SCORE_NAME}</h3>
-        <p class="sub">${LAB ? "Local fit plus the website readings, out of 100." : "Distance, sector, trading record and size, weighted and scaled to 100."}</p>
+        <p class="sub">Out of 100: points from records plus points from AI readings of the business's website.</p>
         <div class="hero">
           <div class="key"><b>${f0(b.score)}<small> /100</small></b><span>${SCORE_NAME}</span></div>
-          ${LAB ? `<div><b>${f0(b.local_fit)}</b><span>Records only</span></div>` : `<div><b>${km(b.distance_km).replace(" km","")}<small> km</small></b><span>From the ground</span></div>`}
+          <div><b>${f0(recPts(b))}<small> of ${REC_TOT}</small></b><span>From records</span></div>
           <div><b>${BIZ.filter(x => x.score > b.score).length + 1}<small> of ${BIZ.length}</small></b><span>Place on the full list</span></div>
         </div>
       </section>
+      ${sizeCard(b)}
       <section class="dcard">
         <h3>Where the points come from</h3>
         <p class="sub">Points earned out of the points available for each part.</p>
+        <div class="pbhead"><span>${srcTag("reported")} From records</span><span>${recPts(b).toFixed(1)} of ${REC_TOT}</span></div>
         ${hard.map(k => pbar(k, b.parts[k], false)).join("")}
-        ${LAB && b.soft_parts ? Object.keys(b.soft_parts).map(k => pbar(k, b.soft_parts[k], true)).join("") : ""}
+        ${b.soft_parts ? `<div class="pbhead"><span>${srcTag("ai")} From AI readings of its website</span><span>${aiPts(b).toFixed(1)} of ${AI_TOT}</span></div>`
+          + Object.keys(b.soft_parts).map(k => pbar(k, b.soft_parts[k], true)).join("") : ""}
       </section>
       <section class="dcard">
         <h3>Club relationship</h3>
@@ -824,6 +924,7 @@ function openBiz(n, from){
         ${b.flags.map(f => `<div class="callout warn"><b>Check first</b>${esc(f.charAt(0).toUpperCase() + f.slice(1))}.</div>`).join("")}
         ${b.warm_intro ? `<div class="callout"><b>Warm path</b>${esc(b.warm_intro)}. Start here rather than a cold approach.</div>` : ""}
         ${b.connection && b.connection.kind !== "warm_intro" ? `<div class="callout"><b>${esc(connLabel(b))}</b>${esc(b.connection.note.charAt(0).toUpperCase() + b.connection.note.slice(1))}.</div>` : ""}
+        ${(b.leads || []).map(l => `<div class="callout"><b>${srcTag("lead")} Check this</b>${esc(l.charAt(0).toUpperCase() + l.slice(1))}. If it's right, tag the relationship above so it counts.</div>`).join("")}
       </section>
       <section class="dcard">
         <h3>Company record</h3>
@@ -837,7 +938,7 @@ function openBiz(n, from){
         </div>
         ${b.ch_flag ? `<div class="callout warn"><b>Match not certain</b>${esc(b.ch_flag.charAt(0).toUpperCase() + b.ch_flag.slice(1))}. The record above may belong to a different company, or there may be none (sole traders aren't listed).</div>` : ""}
       </section>
-      ${LAB ? softCard(b) : ""}
+      ${softCard(b)}
       <section class="dcard">
         <h3>Outreach</h3>
         <p class="sub">Kept by club staff and carried over every time the list is refreshed.</p>
@@ -866,6 +967,20 @@ function openBiz(n, from){
   };
   history.replaceState(null, "", `#business-${n}`);
 }
+function sizeCard(b){
+  const z = SZ(b);
+  const emp = z.employees_basis === "reported"
+    ? `<div><b>${esc(z.employees_band)}</b><span>Employees ${srcTag("reported")}</span><span class="why">${z.employees ? "Average of " + z.employees + " in the " : "Directors only, in the "}${esc(z.employees_note)}</span></div>`
+    : `<div><b class="dim">–</b><span>Employees ${srcTag("not_available")}</span><span class="why">${esc(z.employees_note || "")}</span></div>`;
+  const rev = z.revenue_basis !== "not_available"
+    ? `<div><b>${esc(z.revenue_band)}</b><span>Revenue ${srcTag(z.revenue_basis)}</span><span class="why">${z.revenue_basis === "reported" ? "From the filed accounts" : "Typical for this industry and size"}</span></div>`
+    : `<div><b class="dim">–</b><span>Revenue ${srcTag("not_available")}</span><span class="why">No figure filed and nothing to estimate from</span></div>`;
+  const link = z.accounts_source ? ` <a href="${esc(z.accounts_source)}" target="_blank" rel="noopener">Filed accounts on Companies House</a>.` : "";
+  return `<section class="dcard"><h3>Size and revenue</h3>
+    <p class="sub">For context: neither changes the Fit score.</p>
+    <div class="facts two">${emp}${rev}</div>
+    ${z.revenue_working ? `<div class="working"><b>How this was worked out</b>${esc(z.revenue_working)}${link}</div>` : link ? `<div class="working">${link.trim()}</div>` : ""}</section>`;
+}
 function softCard(b){
   const s = b.soft || {};
   const rows = ["community_affinity","brand_fit","csr_signal","local_connection"].filter(k => s[k]).map(k => {
@@ -873,11 +988,12 @@ function softCard(b){
     return `<div class="reading"><div class="top"><span class="k" style="font-weight:700">${esc(PART[k][0])}</span>
       <span class="bar" style="height:12px;background:#EEF0F2;border-radius:2px;position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:${Math.max(2, r.value*100)}%;background:var(--ink);opacity:${(.35 + .65*r.confidence).toFixed(2)};border-radius:0 3px 3px 0"></i></span>
       <span class="pv" style="text-align:right;font-weight:700">${r.value.toFixed(2)} <span class="conf">· ${Math.round(r.confidence*100)}% sure</span></span></div>
+      ${k === "local_connection" ? `<p class="sub" style="margin:4px 0 0">${srcTag("lead")} Not scored. A person confirms it before it counts.</p>` : ""}
       <q>${esc(r.justification)}</q></div>`;
   }).join("");
   const model = Object.values(s)[0]?.model || "";
-  return `<section class="dcard proto"><h3>Website reading <span class="labtag" style="margin-left:6px">Prototype</span></h3>
-    <p class="sub">${/stub|keyword/i.test(model) ? "A keyword count of the homepage text, not a real reading. Rough." : "Read by an AI model from the homepage text. Not checked by a person."} Low certainty pulls a reading towards the middle before it's scored.</p>
+  return `<section class="dcard"><h3>Website reading ${srcTag("ai")}</h3>
+    <p class="sub">${/stub|keyword/i.test(model) ? "A keyword count of the homepage text standing in for the AI model, not a real reading. Rough." : "Read by an AI model from the homepage text. Not checked by a person."} Low certainty pulls a reading towards the middle before it's scored. Each quote is the model's reason.</p>
     ${rows || '<p class="sub" style="margin:0">No website text found, so all three readings sit at the middle.</p>'}</section>`;
 }
 function closeBiz(){
