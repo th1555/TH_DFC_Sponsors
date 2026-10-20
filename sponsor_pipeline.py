@@ -38,6 +38,9 @@ import fetch_website as web
 import data_checks as dc
 import ingest_accounts as ia
 import revenue_estimate as rev
+import match_sponsors as ms
+from club_sponsors import season_of
+from datetime import date
 
 RNG = np.random.default_rng(7)
 
@@ -297,13 +300,73 @@ def refresh_accounts(conn, ingest_mode="fixture", fetch=True):
     return rows
 
 
+def rescore_from_store(conn, cfg=None, log=print):
+    """Re-apply connections (connections.csv + Dumbarton's own sponsor pages) and
+    re-score every business from what's already stored: no Places search, no
+    Companies House calls, no AI calls. Use after club_sponsors.py, or after
+    editing connections.csv. Outreach notes are untouched (the wall)."""
+    import json as _json
+    cfg = cfg or ss.load_config()
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(businesses)")]
+    recs = [dict(zip(cols, r)) for r in conn.execute("SELECT * FROM businesses")]
+    soft = {}
+    for bid, feat, val, confd, just in conn.execute(
+            "SELECT business_id, feature, value, confidence, justification FROM soft_features"):
+        soft.setdefault(bid, {})[feat] = dict(value=val, confidence=confd, justification=just)
+    table = dc.load_connections(cfg) + ms.club_connection_rows(
+        ms.load_club_sponsors(conn), [dict(name=r["name"], website=r.get("website")) for r in recs],
+        season_of(date.today()))
+    rows = []
+    for rec in recs:
+        rec["accounts_dormant"] = bool(rec.get("accounts_dormant"))
+        rec["company_known"] = bool(rec.get("company_known", 1))
+        rec["connection_kind"] = rec["connection_note"] = None
+        rec["connection_strength"] = 0.0
+        dc.apply_connections(rec, cfg, table)
+        d = soft.get(rec["business_id"], {})
+        neutral = dict(value=0.5, confidence=0.0, justification="")
+        flat = dict(rec, _soft_derived=d,
+                    community_affinity=d.get("community_affinity", neutral)["value"],
+                    community_conf=d.get("community_affinity", neutral)["confidence"],
+                    brand_fit=d.get("brand_fit", neutral)["value"], brand_conf=d.get("brand_fit", neutral)["confidence"],
+                    csr_signal=d.get("csr_signal", neutral)["value"], csr_conf=d.get("csr_signal", neutral)["confidence"])
+        r = ss.score_business(flat, cfg)
+        flags = ss.flags_for(flat, cfg)
+        if rec.get("ch_flag"):
+            flags = (flags + "; " if flags != "-" else "") + rec["ch_flag"]
+        lead = sf.connection_lead(flat)
+        if lead and not rec.get("connection_kind"):
+            flags = (flags + "; " if flags != "-" else "") + lead
+        rows.append(dict(business_id=rec["business_id"], fit_score=r["fit_score"],
+                         top_driver=max(r["contrib"], key=r["contrib"].get).replace("_", " "),
+                         contrib=r["contrib"], flags=flags,
+                         tier=ss.recommend_tier(rec["sector"], cfg, rec.get("connection_kind"), rec.get("size_band"))))
+        conn.execute("UPDATE businesses SET connection_kind=?, connection_note=?, connection_strength=? "
+                     "WHERE business_id=?", (rec["connection_kind"], rec["connection_note"],
+                                             rec["connection_strength"], rec["business_id"]))
+    # keep the page's "Data to" date: when the data was gathered, not today
+    kept = conn.execute("SELECT MAX(computed_at) FROM business_scores").fetchone()[0]
+    db.save_scores(conn, rows, config_version="v1-rescored")
+    if kept:
+        conn.execute("UPDATE business_scores SET computed_at=?", (kept,))
+    conn.commit()
+    ms.match_all(conn, log=log)
+    from collections import Counter
+    log(f"  re-scored {len(rows)} businesses from the store; connections: "
+        f"{dict(Counter(r['connection_kind'] for r in recs if r['connection_kind'])) or 'none'}")
+    return rows
+
+
 def run(mode="stub", source="synthetic", ingest_mode="fixture", accounts=False):
     cfg = ss.load_config()
     conn = db.connect(); db.init_db(conn)
     model = sf.DEFAULT_MODEL if mode == "llm" else "stub-keyword-v1"
 
     cands = ingest_real(cfg, ingest_mode) if source == "real" else make_candidates()
-    conn_table = dc.load_connections(cfg)
+    # the club's list first, then Dumbarton's own sponsor pages (club_sponsors.py)
+    conn_table = dc.load_connections(cfg) + ms.club_connection_rows(
+        ms.load_club_sponsors(conn), [dict(name=c["name"], website=c.get("website")) for c in cands],
+        season_of(date.today()))
     for rec in cands:
         rec["business_id"] = rec.get("business_id") or db.business_key(rec)
         dc.apply_connections(rec, cfg, conn_table)           # recorded local links
@@ -332,6 +395,7 @@ def run(mode="stub", source="synthetic", ingest_mode="fixture", accounts=False):
     db.save_scores(conn, score_rows, config_version="v1")
     if accounts:                                             # step 4: employees + revenue
         refresh_accounts(conn, ingest_mode)
+    ms.match_all(conn)                                       # step 5: football sponsorship (if collected)
 
     # Demo only: seed two statuses so the outreach column isn't empty. Never on
     # real data, and never once anyone has recorded a status: on a live run this
@@ -356,6 +420,12 @@ if __name__ == "__main__":
     # --accounts-only does just that step against an existing sponsor.db, so the
     # Places search and AI readings aren't paid for again.
     accounts = "--accounts" in sys.argv
+    if "--rescore" in sys.argv:
+        conn = db.connect(); db.init_db(conn)
+        if not conn.execute("SELECT COUNT(*) FROM businesses").fetchone()[0]:
+            sys.exit("sponsor.db has no businesses yet: run the full pipeline first.")
+        rescore_from_store(conn)
+        sys.exit(0)
     if "--accounts-only" in sys.argv:
         conn = db.connect(); db.init_db(conn)
         if not conn.execute("SELECT COUNT(*) FROM businesses").fetchone()[0]:

@@ -255,6 +255,40 @@ GP, medical and dental practices show "not available" (the CSV's `sic_prefixes`
 column records each partial industry's coverage). ONS dropped employment from this
 table in 2026, which is why the estimate is per business, not per employee.
 
+## Football sponsorship
+
+Which local businesses have sponsored a football club, which club, and when. Taken from
+the sponsor pages clubs publish about themselves, so it's shown as **Reported**.
+
+```bash
+python club_sponsors.py --plan            # what a live run will fetch
+python club_sponsors.py --live            # all 164 clubs in clubs.yaml (cached after the first run)
+python sponsor_pipeline.py --rescore      # match to businesses, apply Dumbarton's own pages, re-score
+python export_sponsor_site.py
+```
+
+- **`clubs.yaml`**: the 164 clubs (SPFL, Highland, Lowland, all West of Scotland League
+  divisions, 2026/27), 32 marked as near Dumbarton. Update after promotion and relegation.
+- **`club_sponsors.py`**: finds each club's website (clubs.yaml, else Wikidata), honours
+  robots.txt, finds sponsor/partner/commercial pages, and reads them now plus one Internet
+  Archive snapshot per season back to 2021/22, including pages a redesign has removed.
+  Names come from the AI model or from logos and links, and a name is kept only if it
+  appears **word-for-word on the club's page**. Pages are cached. `club_coverage.csv` lists
+  what was found per club and what to fix (add `website`, `sponsor_pages`, or `skip: true`).
+- **`match_sponsors.py`**: matches sponsors to businesses by the website the logo links to,
+  then by name (the connections.csv rule). Near-misses are kept but flagged to check.
+- **Dumbarton's own pages count as the club's record**: on today's page means a Renewal
+  (current sponsor), only on older pages means a Win-back (past sponsor). A person's entry
+  in connections.csv still wins. Other clubs are context only and don't change the score.
+- On the hub: a "Football sponsor" badge, a filter, a Football sponsorship section on each
+  profile with every season and a link to the source page, and columns in the CSV.
+
+Known gaps: clubs that only post on Facebook can't be read, archive coverage varies by
+club, and a club that doesn't publish a sponsor list leaves no record.
+
+`python sponsor_pipeline.py --rescore` is also the way to apply an edited connections.csv
+without re-running the Places search or the AI readings.
+
 ## Deploying
 
 Deploy `site/` exactly like Sons Scouting: a Cloudflare Worker serving the folder,
@@ -298,6 +332,9 @@ whichever repo holds `site/` private. `sponsor.db` itself is never committed.
 | `outreach.py` | Records outreach status and notes (the walled human table) |
 | `ingest_accounts.py` | Employees and turnover from filed accounts (machine-readable iXBRL) |
 | `revenue_estimate.py` | Employee/revenue bands; reported, else estimate with working, else not available |
+| `clubs.yaml` | The clubs whose sponsor lists are collected (2026/27 tables) |
+| `club_sponsors.py` | Collects club sponsor lists, now and archived back to 2021/22, with a coverage report |
+| `match_sponsors.py` | Matches club sponsors to businesses; Dumbarton's own pages become connections |
 | `build_ons_ratios.py` | Builds `ons_turnover_by_size.csv` from the ONS size-band workbook |
 | `ons_turnover_by_size.csv` | Average turnover per business by industry and size (ONS, 2024 figures) |
 | `sponsor_app.py` | Streamlit working view, local use |

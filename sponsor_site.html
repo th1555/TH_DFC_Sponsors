@@ -244,6 +244,15 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
 .score i s.hand{background:#9C7BAA;border-radius:0}
 .pb .bar i.hand{background:#9C7BAA}
 .lg.hand .tr i{background:#9C7BAA}
+.fb{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:999px;background:#E3EFE6;color:#1D5130;font-size:11.5px;font-weight:700;vertical-align:2px;box-shadow:inset 0 0 0 1px #B9D5C1}
+.fbrow{border-top:1px solid var(--line);padding:10px 0}
+.fbrow:first-of-type{border-top:0}
+.fbrow .top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.fbrow .club{font-weight:700;color:var(--ink);font-size:15.5px}
+.fbrow .meta{font-size:13.5px;color:var(--muted)}
+.fbrow .seasons{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);font-size:14.5px}
+.fbrow .srcs{font-size:13px;margin-top:4px}
+.fbrow .srcs a{color:#1F5FAF;margin-right:10px}
 .est-tag{font-size:11px;font-weight:700;color:#5E4500;background:#FFF3C4;border-radius:3px;padding:0 4px;margin-left:5px;vertical-align:1px}
 .working{background:var(--bg);border-radius:6px;padding:10px 14px;margin:10px 0 0;font-size:14.5px}
 .working b{display:block;color:var(--ink);margin-bottom:2px}
@@ -376,6 +385,7 @@ table.ons th{font-size:12.5px;color:var(--muted)}
         <label class="chk"><input id="fLocal" type="checkbox" checked> Hide national chains and online-only</label>
         <label class="chk"><input id="fDormant" type="checkbox"> Hide dormant or not trading</label>
         <label class="chk"><input id="fConn" type="checkbox"> Only businesses with a local connection</label>
+        <label class="chk"><input id="fFoot" type="checkbox"> Only businesses that have sponsored a football club</label>
         <label class="chk"><input id="fSpon" type="checkbox" checked> Hide current sponsors</label>
         <label class="chk"><input id="fNotFit" type="checkbox" checked> Hide businesses marked not a fit</label>
       </div>
@@ -455,6 +465,7 @@ table.ons th{font-size:12.5px;color:var(--muted)}
       <p class="hint" style="margin-top:10px">Only two rows rest on evidence so far: coaches (Marbill) and industry and business services (the club's current sponsors). The next update replaces these ratings with counts from real sponsor lists across Scottish clubs.</p>
     </section>
     <section class="card" id="sizeMethod"></section>
+    <section class="card" id="footMethod"></section>
     </div>
   </div>
 
@@ -577,7 +588,7 @@ function drawKpis(){
     .map(([v,k]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("");
 }
 drawKpis();
-$("foot").textContent = `Businesses from Google Places. Company records, employees and reported turnover from Companies House. Revenue estimates from the ONS Annual Business Survey. AI readings from each business's own homepage. Scores are estimates calculated from those sources. Sons Sponsors, built for Dumbarton FC.`;
+$("foot").textContent = `Businesses from Google Places. Company records, employees and reported turnover from Companies House. Revenue estimates from the ONS Annual Business Survey. Football sponsorship from clubs' own sponsor pages and the Internet Archive. AI readings from each business's own homepage. Scores are estimates calculated from those sources. Sons Sponsors, built for Dumbarton FC.`;
 
 /* ---------- table head ---------- */
 const COLS = [
@@ -606,7 +617,7 @@ function fixGroups(){
 /* ---------- filters ---------- */
 const SECTORS = [...new Set(BIZ.map(b => b.sector))].sort((a,b) => BIZ.filter(x=>x.sector===b).length - BIZ.filter(x=>x.sector===a).length);
 const LABEL_OF = Object.fromEntries(BIZ.map(b => [b.sector, b.sector_label]));
-const DEF = {secs:null, dist:0, emp:0, rev:0, status:"", q:"", hideNonLocal:true, hideDormant:false, onlyConn:false, hideSpon:true, hideNotFit:true, sort:"score", dir:-1};
+const DEF = {secs:null, dist:0, emp:0, rev:0, status:"", q:"", hideNonLocal:true, hideDormant:false, onlyConn:false, onlyFoot:false, hideSpon:true, hideNotFit:true, sort:"score", dir:-1};
 const connLabel = b => b.connection ? (KIND_LABEL[b.connection.kind] || "Local connection") : "";
 const S = {...DEF, secs: new Set(SECTORS)};
 $("secBox").innerHTML = SECTORS.map(s => `<label class="chk"><input type="checkbox" data-s="${esc(s)}" checked> ${esc(LABEL_OF[s])} <span class="c">${BIZ.filter(b=>b.sector===s).length}</span></label>`).join("");
@@ -614,7 +625,7 @@ $("secBox").innerHTML = SECTORS.map(s => `<label class="chk"><input type="checkb
 function syncControls(){
   $("fDist").value = S.dist; $("fStatus").value = S.status; $("fSearch").value = S.q;
   $("fLocal").checked = S.hideNonLocal; $("fDormant").checked = S.hideDormant; $("fConn").checked = S.onlyConn;
-  $("fSpon").checked = S.hideSpon; $("fNotFit").checked = S.hideNotFit;
+  $("fSpon").checked = S.hideSpon; $("fFoot").checked = S.onlyFoot; $("fNotFit").checked = S.hideNotFit;
   $("fRev").value = S.rev;
   document.querySelectorAll("#empSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === S.emp)));
   document.querySelectorAll("#secBox input").forEach(i => i.checked = S.secs.has(i.dataset.s));
@@ -630,6 +641,7 @@ function visible(){
     (!S.hideNonLocal || !NONLOCAL.has(b.sector)) &&
     (!S.hideDormant || !b.dormant) &&
     (!S.onlyConn || (!!b.connection && b.connection.kind !== "not_a_fit")) &&
+    (!S.onlyFoot || (b.football || []).length > 0) &&
     (!S.hideSpon || !b.connection || b.connection.kind !== "current_sponsor") &&
     (!S.hideNotFit || !b.connection || b.connection.kind !== "not_a_fit") &&
     (!q || (b.name||"").toLowerCase().includes(q) || (b.address||"").toLowerCase().includes(q)));
@@ -645,6 +657,9 @@ const SORTNAME = {name:"name", distance_km:"distance", sector_label:"sector", ye
 let LIST = [];
 const scoreCell = b => { const rp = recPts(b), hp = handPts(b), ap = Math.max(0, b.score - rp - hp);
   return `<span class="score" title="${f0(rp)} from records + ${f0(hp)} hand-set sector rating + ${f0(ap)} from AI readings">${f0(b.score)}<i><s class="rec ${b.score >= topCut ? "top" : ""}" style="width:${Math.max(2, rp)}%"></s><s class="hand" style="left:${rp}%;width:${hp}%"></s><s class="ai" style="left:${rp + hp}%;width:${ap}%"></s></i></span>`; };
+const footBadge = b => { const f = b.football || []; if (!f.length) return "";
+  const t = f.map(x => `${x.club} (${x.seasons.join(", ")})`).join("; ");
+  return `<span class="fb" title="Sponsored: ${esc(t)}">Football sponsor${f.length > 1 ? " ×" + f.length : ""}</span>`; };
 const empCell = b => { const z = SZ(b); return z.employees_basis === "reported" ? esc(z.employees_band) : `<span class="dim" title="${esc(z.employees_note || "")}">–</span>`; };
 const revCell = b => { const z = SZ(b); return z.revenue_basis === "reported" ? esc(z.revenue_band)
   : z.revenue_basis === "estimate" ? `${esc(z.revenue_band)}<span class="est-tag" title="Estimate: typical turnover for this industry and size">est.</span>`
@@ -660,7 +675,7 @@ function render(){
     $("rows").innerHTML = LIST.map((b,i) => `
       <tr data-n="${b.n}" tabindex="0" aria-label="${esc(b.name)}, open profile">
         <td class="rk">${i+1}</td>
-        <td class="l pl"><span class="nm">${esc(b.name)}</span>${b.connection ? `<span class="warm">${esc(connLabel(b))}</span>` : b.warm_intro ? `<span class="warm">Warm path</span>` : ""}
+        <td class="l pl"><span class="nm">${esc(b.name)}</span>${b.connection ? `<span class="warm">${esc(connLabel(b))}</span>` : b.warm_intro ? `<span class="warm">Warm path</span>` : ""}${footBadge(b)}
           <span class="cl">${esc(b.sector_label)}${b.townName ? " · " + esc(b.townName) : ""}</span>
           <span class="mob">${km(b.distance_km)} · ${b.years ? b.years + " yrs trading · " : ""}${b.empN != null ? esc(SZ(b).employees_band) + " staff · " : ""}${SZ(b).revenue_band ? esc(SZ(b).revenue_band) + (SZ(b).revenue_basis === "estimate" ? " est." : "") + " · " : ""}${esc(apKind(b))}</span>
           ${b.flags.length ? `<span class="fl">Check: ${esc(b.flags.join("; "))}</span>` : ""}</td>
@@ -698,6 +713,7 @@ $("fSearch").oninput  = e => { S.q = e.target.value; render(); };
 $("fLocal").onchange  = e => { S.hideNonLocal = e.target.checked; render(); };
 $("fDormant").onchange= e => { S.hideDormant = e.target.checked; render(); };
 $("fConn").onchange   = e => { S.onlyConn = e.target.checked; render(); };
+$("fFoot").onchange   = e => { S.onlyFoot = e.target.checked; render(); };
 $("fSpon").onchange   = e => { S.hideSpon = e.target.checked; render(); };
 $("fNotFit").onchange = e => { S.hideNotFit = e.target.checked; render(); };
 $("addBtn").onclick = () => {
@@ -743,6 +759,7 @@ $("download").onclick = () => {
     "Employees (band)","Employees (reported figure)","Employees source","Employees note",
     "Revenue (band)","Revenue source","Revenue figure used (GBP)","ONS average used (GBP)","ONS source","Revenue working","Accounts on Companies House",
     "Fit score","Points from records","Points from hand-set sector rating","Points from AI readings","Records only, no sector rating (scaled to 100)",
+    "Football sponsorship (club: seasons)","Football sponsorship to check (name match only)",
     "AI reading: local roots","AI reading: fit with a town club","AI reading: community support","Possible leads",
     "Suggested approach","Approach detail","Warm path","Local connection","Google reviews","Google rating","Checks","Outreach status","Owner","Notes"];
   const rows = LIST.map((b,i) => { const z = SZ(b); return [i+1, b.name, b.sector_label, b.address, b.distance_km, b.years ?? "", SIZE[b.size_band] || "",
@@ -750,6 +767,8 @@ $("download").onclick = () => {
     z.employees_band || "", z.employees ?? "", SB[z.employees_basis] || "", z.employees_note || "",
     z.revenue_band || "", SB[z.revenue_basis] || "", z.revenue_value ?? "", z.est_avg_turnover ?? "", z.est_source || "", z.revenue_working || "", z.accounts_source || "",
     f0(b.fit), recPts(b).toFixed(1), handPts(b).toFixed(1), aiPts(b).toFixed(1), f0(b.local_fit),
+    (b.football || []).filter(x => !x.weak).map(x => `${x.club}: ${x.seasons.join(", ")}`).join("; "),
+    (b.football || []).filter(x => x.weak).map(x => `${x.club}: ${x.seasons.join(", ")} (listed as ${x.name_on_list})`).join("; "),
     rd(b,"community_affinity"), rd(b,"brand_fit"), rd(b,"csr_signal"), (b.leads || []).join("; "),
     apKind(b), b.approach.detail, b.warm_intro || "", b.connection ? connLabel(b) + ": " + b.connection.note : "",
     b.google_reviews ?? "", b.google_rating ?? "", b.flags.join("; "), STATUS[b.status] || b.status, b.owner || "", b.notes || ""]; });
@@ -851,6 +870,12 @@ function drawScatter(){
   const nEmp = cnt(b => SZ(b).employees_basis === "reported"), nRep = cnt(b => SZ(b).revenue_basis === "reported"), nEst = cnt(b => SZ(b).revenue_basis === "estimate");
   const fmtK = v => v >= 1e6 ? "£" + (v/1e6).toFixed(1) + "m" : "£" + Math.round(v/1000) + "k";
   const ons = DATA.ons || [];
+  const fc = DATA.football, nF = BIZ.filter(b => (b.football || []).length).length;
+  $("footMethod").innerHTML = `<h2>Football sponsorship</h2>
+    <p style="font-size:14.5px">${srcTag("reported")} Taken from the sponsor and partner pages that clubs publish about themselves: today's pages, plus one Internet Archive snapshot per season back to 2021/22. A name only counts if it appears word-for-word on the club's page. It's matched to a business by the website its logo links to, or by name; near-misses are flagged to check.</p>
+    <p style="font-size:14.5px">Dumbarton's own pages are treated as the club's record: on today's page means a <b>Renewal</b>, on an older page only means a <b>Win-back</b>. Other clubs are shown for context and don't change the score.</p>`
+    + (fc ? `<p class="hint">Clubs checked: ${fc.clubs} (SPFL, Highland, Lowland and West of Scotland leagues); sponsor lists read for ${fc.clubs_with_data}, including ${fc.near_with_data} of the ${fc.near} near Dumbarton. Seasons ${esc(fc.first || "–")} to ${esc(fc.last || "–")}. On this list: ${nF} businesses found. Clubs that only post on Facebook can't be read.</p>`
+          : `<p class="hint">Not collected for this list yet.</p>`);
   $("sizeMethod").innerHTML = `<h2>Employees and revenue</h2>
     <p style="font-size:14.5px">${srcTag("reported")} <strong>Employees</strong> is the average headcount in the business's latest filed accounts at Companies House, shown as a band. 0 shows as Directors only.</p>
     <p style="font-size:14.5px">${srcTag("reported")} <strong>Revenue</strong> is the turnover in the filed accounts where the business included it. Most small firms don't have to.</p>
@@ -906,6 +931,7 @@ function openBiz(n, from){
         </div>
       </section>
       ${sizeCard(b)}
+      ${footCard(b)}
       <section class="dcard">
         <h3>Where the points come from</h3>
         <p class="sub">Points earned out of the points available for each part.</p>
@@ -976,6 +1002,22 @@ function openBiz(n, from){
     if (!ok) $("tagMsg").textContent = "Couldn't save in this browser; download the sponsor list now to keep it.";
   };
   history.replaceState(null, "", `#business-${n}`);
+}
+function footCard(b){
+  const fc = DATA.football, f = b.football || [];
+  let body;
+  if (!fc) body = `<p class="sub" style="margin:0">${srcTag("not_available")} Club sponsor lists haven't been collected for this list yet.</p>`;
+  else if (!f.length) body = `<p class="sub" style="margin:0">Not found on the sponsor pages of the ${fc.clubs_with_data} clubs we could read${fc.first ? ` (${esc(fc.first)} to ${esc(fc.last)})` : ""}. Many clubs don't publish a sponsor list, so this isn't proof they've never sponsored football.</p>`;
+  else body = f.map(x => {
+    const latest = [...x.sources].reverse();
+    const links = latest.slice(0, 4).map(sv => `<a href="${esc(sv.url)}" target="_blank" rel="noopener">${esc(sv.season)}${sv.archived ? " (archived)" : ""}</a>`).join("");
+    return `<div class="fbrow"><div class="top"><span><span class="club">${esc(x.club)}</span>${x.club === "Dumbarton" ? "" : x.near ? ` <span class="meta">· near Dumbarton</span>` : ""}
+        <span class="meta">· ${esc(x.league || "")}</span></span><span class="seasons">${esc(x.seasons.join(", "))}</span></div>
+      <div class="meta">${srcTag("reported")} on the club's own sponsor page${x.name_on_list && x.name_on_list !== b.name ? `, listed as “${esc(x.name_on_list)}”` : ""}${x.by === "website" ? ", logo links to this business's website" : ""}</div>
+      ${x.weak ? `<div class="callout warn"><b>Check it's the same business</b>The names are very similar but not the same, so this could be a different firm.</div>` : ""}
+      <div class="srcs">Sources: ${links}</div></div>`; }).join("");
+  return `<section class="dcard"><h3>Football sponsorship</h3>
+    <p class="sub">Clubs whose own sponsor pages list this business, from ${fc && fc.first ? esc(fc.first) : "2021/22"} on. Shown for context, not judged: backing another club isn't good or bad.</p>${body}</section>`;
 }
 function sizeCard(b){
   const z = SZ(b);

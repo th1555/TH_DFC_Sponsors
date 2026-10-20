@@ -154,20 +154,25 @@ def sponsor_pages(home_html: str, home_url: str, limit=3) -> list[str]:
 def heuristic_names(ev: dict, club_name: str) -> list[dict]:
     """No-AI route: logo alt/title text and outbound links with real names."""
     club = norm(club_name)
-    out, seen = [], set()
+    out, seen = [], {}
     def add(name, dom=None):
         n = norm(name)
-        if not n or len(n) < 3 or GENERIC.match(n) or club in n or n in seen:
+        if n in seen:                              # same sponsor via its logo link: keep the domain
+            if dom and not seen[n].get("domain"):
+                seen[n]["domain"] = dom
+            return
+        if not n or len(n) < 3 or GENERIC.match(n) or club in n:
             return
         if re.search(r"\b(logo|png|jpg|jpeg|svg|webp|img|image|banner)\b", n) and len(n.split()) <= 2:
             return
-        seen.add(n)
-        out.append({"name": re.sub(r"\s*(logo|Logo|LOGO)$", "", name).strip(), "domain": dom})
+        item = {"name": re.sub(r"\s*(logo|Logo|LOGO)$", "", name).strip(), "domain": dom}
+        seen[n] = item
+        out.append(item)
     for i in ev["items"]:
-        add(i)
+        add(re.sub(r"\s*(logo|Logo|LOGO)$", "", i).strip())
     for l in ev["links"]:
         if l["text"]:
-            add(l["text"], l["host"])
+            add(re.sub(r"\s*(logo|Logo|LOGO)$", "", l["text"]).strip(), l["host"])
     return out
 
 

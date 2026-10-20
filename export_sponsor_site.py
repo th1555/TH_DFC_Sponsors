@@ -108,6 +108,41 @@ def ons_rows_used(est: pd.DataFrame) -> list[dict]:
     return keep
 
 
+def _table(conn, name):
+    return bool(conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone())
+
+
+def football_by_business(conn) -> dict:
+    """business_id -> [{club, league, tier, near, seasons, sources, weak}], one entry per club."""
+    if not _table(conn, "sponsor_matches"):
+        return {}
+    out = {}
+    m = pd.read_sql("SELECT * FROM sponsor_matches", conn)
+    for (bid, club), g in m.groupby(["business_id", "club"]):
+        g = g.sort_values("season")
+        out.setdefault(bid, []).append(dict(
+            club=club, league=clean(g.league.iloc[0]), tier=as_int(g.tier.iloc[0]), near=bool(g.near.iloc[0]),
+            seasons=sorted(set(g.season)), name_on_list=clean(g.sponsor_name.iloc[-1]),
+            sources=[dict(season=r.season, url=r.source_url, archived=r.source_type == "archived_page")
+                     for r in g.itertuples()],
+            weak=bool((g.match_type == "weak").all()), by=clean(g.match_type.iloc[-1])))
+    for v in out.values():
+        v.sort(key=lambda x: (x["club"] != "Dumbarton", -len(x["seasons"]), x["club"]))
+    return out
+
+
+def football_coverage(conn) -> dict | None:
+    if not _table(conn, "club_coverage"):
+        return None
+    c = pd.read_sql("SELECT * FROM club_coverage", conn)
+    s = pd.read_sql("SELECT DISTINCT season FROM club_sponsors", conn) if _table(conn, "club_sponsors") else None
+    seasons = sorted(s.season) if s is not None else []
+    return dict(clubs=int(len(c)), clubs_with_data=int((c.rows > 0).sum()),
+                near_with_data=int(((c.rows > 0) & (c.near == 1)).sum()), near=int((c.near == 1).sum()),
+                first=seasons[0] if seasons else None, last=seasons[-1] if seasons else None,
+                checked=str(c.checked_at.max())[:10] if len(c) else None)
+
+
 def build_payload(conn, cfg, scouting_link: str | None) -> dict:
     w = cfg["weights"]
     fact_total = sum(w[k] for k in FACT)
@@ -117,6 +152,7 @@ def build_payload(conn, cfg, scouting_link: str | None) -> dict:
     os_ = pd.read_sql("SELECT * FROM outreach_status", conn)
     sf = pd.read_sql("SELECT * FROM soft_features", conn)
     est = pd.read_sql("SELECT * FROM revenue_estimates", conn).drop(columns=["computed_at"])
+    football = football_by_business(conn)
     df = (sc.merge(biz, on="business_id", how="left")
             .merge(os_, on="business_id", how="left")
             .merge(est.rename(columns={"employees": "est_employees"}), on="business_id", how="left"))
@@ -178,6 +214,7 @@ def build_payload(conn, cfg, scouting_link: str | None) -> dict:
                 accounts_period_end=clean(r.accounts_period_end),
                 accounts_source=clean(r.accounts_source)),
         )
+        rec["football"] = football.get(r.business_id, [])
         rec["fit"] = round(float(r.fit_score), 1)
         rec["soft_parts"] = {k: dict(points=round(contrib.get(k, 0), 2), weight=w[k]) for k in SOFT}
         rec["soft"] = soft_by.get(r.business_id, {})
@@ -215,6 +252,7 @@ def build_payload(conn, cfg, scouting_link: str | None) -> dict:
         connections_unmatched=unmatched,
         offers_source=(cfg.get("offers") or {}).get("source"),
         ons=ons_rows_used(est),
+        football=football_coverage(conn),
         accounts_read=bool(len(est)),
     )
 
