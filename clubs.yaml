@@ -1,0 +1,797 @@
+# clubs.yaml  —  the clubs whose sponsors we collect (2026/27 league tables)
+# ==========================================================================
+# One entry per club. club_sponsors.py finds each club's website from Wikidata
+# (the data behind Wikipedia) unless `website` is given here, then finds the
+# sponsor / partner / commercial pages on it. Add `website` or `sponsor_pages`
+# when the automatic route misses (the coverage report lists those clubs), and
+# `skip: true` for a club with no website (many only post on Facebook).
+#
+# tier: 1-4 SPFL, 5 Highland / Lowland League, 6-10 West of Scotland League.
+# near: within roughly 30 km of Dumbarton, so its sponsors are likely local.
+#
+# Sources: Wikipedia 2026/27 league pages (SPFL, Highland, Lowland), and the
+# West of Scotland League club directory (wosfl.co.uk), checked 20 Oct 2026.
+# Update once a season after promotion and relegation.
+clubs:
+  - name: "Aberdeen"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Aberdeen"
+    wiki: "Aberdeen F.C."
+  - name: "Celtic"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Glasgow"
+    wiki: "Celtic F.C."
+    near: true
+  - name: "Dundee"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Dundee"
+    wiki: "Dundee F.C."
+  - name: "Dundee United"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Dundee"
+    wiki: "Dundee United F.C."
+  - name: "Falkirk"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Falkirk"
+    wiki: "Falkirk F.C."
+  - name: "Heart of Midlothian"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Edinburgh"
+    wiki: "Heart of Midlothian F.C."
+  - name: "Hibernian"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Edinburgh"
+    wiki: "Hibernian F.C."
+  - name: "Kilmarnock"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Kilmarnock"
+    wiki: "Kilmarnock F.C."
+  - name: "Motherwell"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Motherwell"
+    wiki: "Motherwell F.C."
+  - name: "Rangers"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Glasgow"
+    wiki: "Rangers F.C."
+    near: true
+  - name: "St Johnstone"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Perth"
+    wiki: "St Johnstone F.C."
+  - name: "St Mirren"
+    league: "Scottish Premiership"
+    tier: 1
+    town: "Paisley"
+    wiki: "St Mirren F.C."
+    near: true
+  - name: "Arbroath"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Arbroath"
+    wiki: "Arbroath F.C."
+  - name: "Ayr United"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Ayr"
+    wiki: "Ayr United F.C."
+  - name: "Dunfermline Athletic"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Dunfermline"
+    wiki: "Dunfermline Athletic F.C."
+  - name: "Greenock Morton"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Greenock"
+    wiki: "Greenock Morton F.C."
+    near: true
+  - name: "Inverness Caledonian Thistle"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Inverness"
+    wiki: "Inverness Caledonian Thistle F.C."
+  - name: "Livingston"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Livingston"
+    wiki: "Livingston F.C."
+  - name: "Partick Thistle"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Glasgow"
+    wiki: "Partick Thistle F.C."
+    near: true
+  - name: "Queen's Park"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Glasgow"
+    wiki: "Queen's Park F.C."
+    near: true
+  - name: "Raith Rovers"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Kirkcaldy"
+    wiki: "Raith Rovers F.C."
+  - name: "Stenhousemuir"
+    league: "Scottish Championship"
+    tier: 2
+    town: "Stenhousemuir"
+    wiki: "Stenhousemuir F.C."
+  - name: "Airdrieonians"
+    league: "Scottish League One"
+    tier: 3
+    town: "Airdrie"
+    wiki: "Airdrieonians F.C."
+  - name: "Alloa Athletic"
+    league: "Scottish League One"
+    tier: 3
+    town: "Alloa"
+    wiki: "Alloa Athletic F.C."
+  - name: "Cove Rangers"
+    league: "Scottish League One"
+    tier: 3
+    town: "Aberdeen"
+    wiki: "Cove Rangers F.C."
+  - name: "East Kilbride"
+    league: "Scottish League One"
+    tier: 3
+    town: "East Kilbride"
+    wiki: "East Kilbride F.C."
+  - name: "East Fife"
+    league: "Scottish League One"
+    tier: 3
+    town: "Methil"
+    wiki: "East Fife F.C."
+  - name: "Hamilton Academical"
+    league: "Scottish League One"
+    tier: 3
+    town: "Hamilton"
+    wiki: "Hamilton Academical F.C."
+  - name: "Montrose"
+    league: "Scottish League One"
+    tier: 3
+    town: "Montrose"
+    wiki: "Montrose F.C."
+  - name: "Peterhead"
+    league: "Scottish League One"
+    tier: 3
+    town: "Peterhead"
+    wiki: "Peterhead F.C."
+  - name: "Queen of the South"
+    league: "Scottish League One"
+    tier: 3
+    town: "Dumfries"
+    wiki: "Queen of the South F.C."
+  - name: "Ross County"
+    league: "Scottish League One"
+    tier: 3
+    town: "Dingwall"
+    wiki: "Ross County F.C."
+  - name: "Annan Athletic"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Annan"
+    wiki: "Annan Athletic F.C."
+  - name: "Clyde"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Hamilton"
+    wiki: "Clyde F.C."
+  - name: "Dumbarton"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Dumbarton"
+    wiki: "Dumbarton F.C."
+    near: true
+    website: "https://www.dumbartonfootballclub.com"
+    sponsor_pages: ["https://www.dumbartonfootballclub.com/club/commercial"]
+  - name: "Edinburgh City"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Edinburgh"
+    wiki: "Edinburgh City F.C."
+  - name: "Elgin City"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Elgin"
+    wiki: "Elgin City F.C."
+  - name: "Forfar Athletic"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Forfar"
+    wiki: "Forfar Athletic F.C."
+  - name: "Kelty Hearts"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Kelty"
+    wiki: "Kelty Hearts F.C."
+  - name: "Stirling Albion"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Stirling"
+    wiki: "Stirling Albion F.C."
+  - name: "Stranraer"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Stranraer"
+    wiki: "Stranraer F.C."
+  - name: "The Spartans"
+    league: "Scottish League Two"
+    tier: 4
+    town: "Edinburgh"
+    wiki: "Spartans F.C."
+  - name: "Banks o' Dee"
+    league: "Highland League"
+    tier: 5
+    town: "Aberdeen"
+    wiki: "Banks o' Dee F.C."
+  - name: "Brora Rangers"
+    league: "Highland League"
+    tier: 5
+    town: "Brora"
+    wiki: "Brora Rangers F.C."
+  - name: "Buckie Thistle"
+    league: "Highland League"
+    tier: 5
+    town: "Buckie"
+    wiki: "Buckie Thistle F.C."
+  - name: "Clachnacuddin"
+    league: "Highland League"
+    tier: 5
+    town: "Inverness"
+    wiki: "Clachnacuddin F.C."
+  - name: "Deveronvale"
+    league: "Highland League"
+    tier: 5
+    town: "Banff"
+    wiki: "Deveronvale F.C."
+  - name: "Formartine United"
+    league: "Highland League"
+    tier: 5
+    town: "Pitmedden"
+    wiki: "Formartine United F.C."
+  - name: "Forres Mechanics"
+    league: "Highland League"
+    tier: 5
+    town: "Forres"
+    wiki: "Forres Mechanics F.C."
+  - name: "Fraserburgh"
+    league: "Highland League"
+    tier: 5
+    town: "Fraserburgh"
+    wiki: "Fraserburgh F.C."
+  - name: "Huntly"
+    league: "Highland League"
+    tier: 5
+    town: "Huntly"
+    wiki: "Huntly F.C."
+  - name: "Invergordon"
+    league: "Highland League"
+    tier: 5
+    town: "Invergordon"
+    wiki: "Invergordon F.C."
+  - name: "Inverurie Loco Works"
+    league: "Highland League"
+    tier: 5
+    town: "Inverurie"
+    wiki: "Inverurie Loco Works F.C."
+  - name: "Keith"
+    league: "Highland League"
+    tier: 5
+    town: "Keith"
+    wiki: "Keith F.C."
+  - name: "Lossiemouth"
+    league: "Highland League"
+    tier: 5
+    town: "Lossiemouth"
+    wiki: "Lossiemouth F.C."
+  - name: "Nairn County"
+    league: "Highland League"
+    tier: 5
+    town: "Nairn"
+    wiki: "Nairn County F.C."
+  - name: "Rothes"
+    league: "Highland League"
+    tier: 5
+    town: "Rothes"
+    wiki: "Rothes F.C."
+  - name: "Strathspey Thistle"
+    league: "Highland League"
+    tier: 5
+    town: "Grantown-on-Spey"
+    wiki: "Strathspey Thistle F.C."
+  - name: "Turriff United"
+    league: "Highland League"
+    tier: 5
+    town: "Turriff"
+    wiki: "Turriff United F.C."
+  - name: "Wick Academy"
+    league: "Highland League"
+    tier: 5
+    town: "Wick"
+    wiki: "Wick Academy F.C."
+  - name: "Berwick Rangers"
+    league: "Lowland League East"
+    tier: 5
+    town: "Berwick-upon-Tweed"
+    wiki: "Berwick Rangers F.C."
+  - name: "Bo'ness United"
+    league: "Lowland League East"
+    tier: 5
+    town: "Bo'ness"
+    wiki: "Bo'ness United F.C."
+  - name: "Bonnyrigg Rose"
+    league: "Lowland League East"
+    tier: 5
+    town: "Bonnyrigg"
+    wiki: "Bonnyrigg Rose F.C."
+  - name: "Brechin City"
+    league: "Lowland League East"
+    tier: 5
+    town: "Brechin"
+    wiki: "Brechin City F.C."
+  - name: "Broxburn Athletic"
+    league: "Lowland League East"
+    tier: 5
+    town: "Broxburn"
+    wiki: "Broxburn Athletic F.C."
+  - name: "Civil Service Strollers"
+    league: "Lowland League East"
+    tier: 5
+    town: "Edinburgh"
+    wiki: "Civil Service Strollers F.C."
+  - name: "Cowdenbeath"
+    league: "Lowland League East"
+    tier: 5
+    town: "Cowdenbeath"
+    wiki: "Cowdenbeath F.C."
+  - name: "Dunipace"
+    league: "Lowland League East"
+    tier: 5
+    town: "Denny"
+    wiki: "Dunipace F.C."
+  - name: "East Stirlingshire"
+    league: "Lowland League East"
+    tier: 5
+    town: "Stenhousemuir"
+    wiki: "East Stirlingshire F.C."
+  - name: "Gala Fairydean Rovers"
+    league: "Lowland League East"
+    tier: 5
+    town: "Galashiels"
+    wiki: "Gala Fairydean Rovers F.C."
+  - name: "Hill of Beath Hawthorn"
+    league: "Lowland League East"
+    tier: 5
+    town: "Hill of Beath"
+    wiki: "Hill of Beath Hawthorn F.C."
+  - name: "Linlithgow Rose"
+    league: "Lowland League East"
+    tier: 5
+    town: "Linlithgow"
+    wiki: "Linlithgow Rose F.C."
+  - name: "Lochee United"
+    league: "Lowland League East"
+    tier: 5
+    town: "Dundee"
+    wiki: "Lochee United F.C."
+  - name: "Musselburgh Athletic"
+    league: "Lowland League East"
+    tier: 5
+    town: "Musselburgh"
+    wiki: "Musselburgh Athletic F.C."
+  - name: "Tranent"
+    league: "Lowland League East"
+    tier: 5
+    town: "Tranent"
+    wiki: "Tranent F.C."
+  - name: "University of Stirling"
+    league: "Lowland League East"
+    tier: 5
+    town: "Stirling"
+    wiki: "University of Stirling F.C."
+  - name: "Albion Rovers"
+    league: "Lowland League West"
+    tier: 5
+    town: "Coatbridge"
+    wiki: "Albion Rovers F.C."
+  - name: "Auchinleck Talbot"
+    league: "Lowland League West"
+    tier: 5
+    town: "Auchinleck"
+    wiki: "Auchinleck Talbot F.C."
+  - name: "Beith Juniors"
+    league: "Lowland League West"
+    tier: 5
+    town: "Beith"
+    wiki: "Beith Juniors F.C."
+  - name: "Caledonian Braves"
+    league: "Lowland League West"
+    tier: 5
+    town: "Motherwell"
+    wiki: "Caledonian Braves F.C."
+  - name: "Clydebank"
+    league: "Lowland League West"
+    tier: 5
+    town: "Clydebank"
+    wiki: "Clydebank F.C."
+    near: true
+  - name: "Cumbernauld Colts"
+    league: "Lowland League West"
+    tier: 5
+    town: "Cumbernauld"
+    wiki: "Cumbernauld Colts F.C."
+  - name: "Cumnock Juniors"
+    league: "Lowland League West"
+    tier: 5
+    town: "Cumnock"
+    wiki: "Cumnock Juniors F.C."
+  - name: "Dalbeattie Star"
+    league: "Lowland League West"
+    tier: 5
+    town: "Dalbeattie"
+    wiki: "Dalbeattie Star F.C."
+  - name: "Gretna 2008"
+    league: "Lowland League West"
+    tier: 5
+    town: "Gretna"
+    wiki: "Gretna F.C. 2008"
+  - name: "Johnstone Burgh"
+    league: "Lowland League West"
+    tier: 5
+    town: "Johnstone"
+    wiki: "Johnstone Burgh F.C."
+    near: true
+  - name: "Kilwinning Rangers"
+    league: "Lowland League West"
+    tier: 5
+    town: "Kilwinning"
+    wiki: "Kilwinning Rangers F.C."
+  - name: "Largs Thistle"
+    league: "Lowland League West"
+    tier: 5
+    town: "Largs"
+    wiki: "Largs Thistle F.C."
+  - name: "Newton Stewart"
+    league: "Lowland League West"
+    tier: 5
+    town: "Newton Stewart"
+    wiki: "Newton Stewart F.C."
+  - name: "Pollok"
+    league: "Lowland League West"
+    tier: 5
+    town: "Glasgow"
+    wiki: "Pollok F.C."
+    near: true
+  - name: "Renfrew"
+    league: "Lowland League West"
+    tier: 5
+    town: "Renfrew"
+    wiki: "Renfrew F.C."
+    near: true
+  - name: "Troon"
+    league: "Lowland League West"
+    tier: 5
+    town: "Troon"
+    wiki: "Troon F.C."
+  - name: "Ardrossan Winton Rovers"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Ardrossan Winton Rovers F.C."
+  - name: "Arthurlie"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Arthurlie F.C."
+    near: true
+  - name: "Benburb"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Benburb F.C."
+    near: true
+  - name: "Cumbernauld United"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Cumbernauld United F.C."
+  - name: "Darvel"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Darvel F.C."
+  - name: "Drumchapel United"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Drumchapel United F.C."
+    near: true
+  - name: "Glenafton Athletic"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Glenafton Athletic F.C."
+  - name: "Hurlford United"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Hurlford United F.C."
+  - name: "Irvine Meadow XI"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Irvine Meadow XI F.C."
+  - name: "Kilbirnie Ladeside"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Kilbirnie Ladeside F.C."
+  - name: "Kirkintilloch Rob Roy"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Kirkintilloch Rob Roy F.C."
+    near: true
+  - name: "Rutherglen Glencairn"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Rutherglen Glencairn F.C."
+  - name: "Shotts Bon Accord"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Shotts Bon Accord F.C."
+  - name: "St Cadoc's"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "St Cadoc's F.C."
+  - name: "St Roch's"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "St Roch's F.C."
+    near: true
+  - name: "Vale of Clyde"
+    league: "WoSFL Premier Division"
+    tier: 6
+    wiki: "Vale of Clyde F.C."
+    near: true
+  - name: "Bellshill Athletic"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Bellshill Athletic F.C."
+  - name: "Blantyre Victoria"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Blantyre Victoria F.C."
+  - name: "Bonnyton Thistle"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Bonnyton Thistle F.C."
+  - name: "Cambuslang Rangers"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Cambuslang Rangers F.C."
+  - name: "Gartcairn"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Gartcairn F.C."
+  - name: "Kilsyth Rangers"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Kilsyth Rangers F.C."
+  - name: "Lanark United"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Lanark United F.C."
+  - name: "Lesmahagow Juniors"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Lesmahagow Juniors F.C."
+  - name: "Maryhill"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Maryhill F.C."
+    near: true
+  - name: "Maybole Juniors"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Maybole Juniors F.C."
+  - name: "Neilston"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Neilston F.C."
+    near: true
+  - name: "Petershill"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Petershill F.C."
+    near: true
+  - name: "Thorn Athletic"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Thorn Athletic F.C."
+  - name: "Thorniewood United"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Thorniewood United F.C."
+  - name: "Threave Rovers"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Threave Rovers F.C."
+  - name: "Whitletts Victoria"
+    league: "WoSFL First Division"
+    tier: 7
+    wiki: "Whitletts Victoria F.C."
+  - name: "Ardeer Thistle"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Ardeer Thistle F.C."
+  - name: "Ashfield"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Ashfield F.C."
+    near: true
+  - name: "Craigmark Burntonians"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Craigmark Burntonians F.C."
+  - name: "Dalry Thistle"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Dalry Thistle F.C."
+  - name: "Easterhouse"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Easterhouse F.C."
+  - name: "Finnart"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Finnart F.C."
+    near: true
+  - name: "Forth Wanderers"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Forth Wanderers F.C."
+  - name: "Girvan"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Girvan F.C."
+  - name: "Glasgow United"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Glasgow United F.C."
+    near: true
+  - name: "Glasgow University"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Glasgow University F.C."
+    near: true
+  - name: "Greenock Juniors"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Greenock Juniors F.C."
+    near: true
+  - name: "Kilsyth Athletic"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Kilsyth Athletic F.C."
+  - name: "Knightswood"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Knightswood F.C."
+    near: true
+  - name: "Larkhall Thistle"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Larkhall Thistle F.C."
+  - name: "Port Glasgow Juniors"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Port Glasgow Juniors F.C."
+    near: true
+  - name: "Yoker Athletic"
+    league: "WoSFL Second Division"
+    tier: 8
+    wiki: "Yoker Athletic F.C."
+    near: true
+  - name: "Carluke Rovers"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Carluke Rovers F.C."
+  - name: "East Kilbride Thistle"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "East Kilbride Thistle F.C."
+  - name: "East Kilbride YM"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "East Kilbride YM F.C."
+  - name: "Eglinton"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Eglinton F.C."
+  - name: "Giffnock"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Giffnock F.C."
+  - name: "Glasgow Perthshire"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Glasgow Perthshire F.C."
+    near: true
+  - name: "Glenvale"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Glenvale F.C."
+  - name: "Irvine Victoria"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Irvine Victoria F.C."
+  - name: "Kello Rovers"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Kello Rovers F.C."
+  - name: "Lugar Boswell Thistle"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Lugar Boswell Thistle F.C."
+  - name: "Newmains United"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Newmains United F.C."
+  - name: "Royal Albert"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Royal Albert F.C."
+  - name: "Saltcoats Victoria"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Saltcoats Victoria F.C."
+  - name: "St Anthony's"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "St Anthony's F.C."
+    near: true
+  - name: "Vale of Leven"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "Vale of Leven F.C."
+    near: true
+  - name: "West Park United"
+    league: "WoSFL Third Division"
+    tier: 9
+    wiki: "West Park United F.C."
+  - name: "Annbank United"
+    league: "WoSFL Fourth Division"
+    tier: 10
+    wiki: "Annbank United F.C."
+  - name: "Campbeltown Pupils"
+    league: "WoSFL Fourth Division"
+    tier: 10
+    wiki: "Campbeltown Pupils F.C."
+  - name: "Castlemilk"
+    league: "WoSFL Fourth Division"
+    tier: 10
+    wiki: "Castlemilk F.C."
+  - name: "Eddlewood"
+    league: "WoSFL Fourth Division"
+    tier: 10
+    wiki: "Eddlewood F.C."
+  - name: "Gartcosh United"
+    league: "WoSFL Fourth Division"
+    tier: 10
+    wiki: "Gartcosh United F.C."
+  - name: "Rossvale"
+    league: "WoSFL Fourth Division"
+    tier: 10
+    wiki: "Rossvale F.C."
+    near: true
+  - name: "St Patrick's FP"
+    league: "WoSFL Fourth Division"
+    tier: 10
+    wiki: "St Patrick's F.P. F.C."
+  - name: "Wishaw"
+    league: "WoSFL Fourth Division"
+    tier: 10
+    wiki: "Wishaw F.C."

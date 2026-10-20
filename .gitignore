@@ -26,3 +26,6 @@ venv/
 # This repo is public: deploy site/ privately (Cloudflare Access), never commit it.
 site/
 sons_sponsors_site.zip
+
+# --- club sponsor collector cache (re-fetchable) ---
+club_cache/
