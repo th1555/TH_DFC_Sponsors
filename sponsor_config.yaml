@@ -64,6 +64,17 @@ sector_propensity:
   public_sector_charity:                0.30   # rarely a paying sponsor (flag as partner)
   unknown:                              0.45   # unclassified — neutral-ish default
 
+# --- sector ratings counted from real club sponsor lists (sponsor_sectors.py) --
+# When sector_ratings.csv exists and enough sponsors were counted, the counted
+# rating replaces the hand-set one above for every sector SIC codes can measure
+# (national chains and "unknown" stay hand-set). See sponsor_sectors.py for the maths.
+sector_ratings:
+  use_learned: true
+  file: sector_ratings.csv
+  tiers: [3, 10]           # count sponsors of League One down to the West of Scotland League
+  prior_sponsors: 30       # caution for thin evidence: pulls small counts towards average
+  min_sponsors: 150        # below this many classified sponsors, keep the hand-set table
+
 # --- tier recommendation: business type -> suggested inventory ---------------
 # Separate OUTPUT from the score. Matches prospect type to what to offer.
 tier_map:

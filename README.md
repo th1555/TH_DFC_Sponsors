@@ -286,6 +286,18 @@ python export_sponsor_site.py
 Known gaps: clubs that only post on Facebook can't be read, archive coverage varies by
 club, and a club that doesn't publish a sponsor list leaves no record.
 
+**Sector ratings from the sponsor lists.** `sponsor_sectors.py` classifies every sponsor
+found at clubs from League One down to the West of Scotland League (chain list, then what
+the name says, then a near-exact Companies House match, then the AI from the name;
+the method is recorded for each), counts them by sector, and compares each sector's share
+of sponsors with its share of Scottish businesses (ONS business register, built into
+`business_base_scotland.csv` by `build_business_base.py`). The rating is
+lift / (1 + lift): 0.5 is average, 0.75 is three times as common among sponsors, and small
+counts are pulled towards 0.5. Every number is in `sector_ratings.csv`. Once at least 150
+sponsors are counted (config `sector_ratings`), these replace the hand-set table for every
+sector SIC codes can measure; national chains and unclassified stay hand-set, and the page
+labels each row Counted or Hand-set.
+
 `python sponsor_pipeline.py --rescore` is also the way to apply an edited connections.csv
 without re-running the Places search or the AI readings.
 
@@ -334,6 +346,7 @@ whichever repo holds `site/` private. `sponsor.db` itself is never committed.
 | `revenue_estimate.py` | Employee/revenue bands; reported, else estimate with working, else not available |
 | `clubs.yaml` | The clubs whose sponsor lists are collected (2026/27 tables) |
 | `club_sponsors.py` | Collects club sponsor lists, now and archived back to 2021/22, with a coverage report |
+| `sponsor_sectors.py` | Sector ratings counted from the club sponsor lists (with the evidence in sector_ratings.csv) |
 | `match_sponsors.py` | Matches club sponsors to businesses; Dumbarton's own pages become connections |
 | `build_ons_ratios.py` | Builds `ons_turnover_by_size.csv` from the ONS size-band workbook |
 | `ons_turnover_by_size.csv` | Average turnover per business by industry and size (ONS, 2024 figures) |

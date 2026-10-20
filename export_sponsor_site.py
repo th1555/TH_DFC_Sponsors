@@ -249,8 +249,12 @@ def build_payload(conn, cfg, scouting_link: str | None) -> dict:
         soft_models=models,
         stadium=cfg.get("ingest", {}).get("stadium", {}).get("name", "the ground"),
         weights={k: w[k] for k in HARD + SOFT},
-        sectors=[dict(key=k, label=SECTOR_LABELS.get(k, k), propensity=v)
+        sectors=[dict(key=k, label=SECTOR_LABELS.get(k, k), propensity=v,
+                      method=(cfg.get("sector_method") or {}).get(k, "hand-set"),
+                      **{f: clean((cfg.get("sector_evidence") or {}).get(k, {}).get(f))
+                         for f in ("sponsors", "sponsor_share", "business_share", "lift", "hand_set")})
                  for k, v in cfg["sector_propensity"].items() if k != "unknown"],
+        sector_meta=cfg.get("sector_evidence_meta"),
         nav=nav, businesses=rows,
         connection_strength=(cfg.get("connections") or {}).get("strength", {}),
         decay_km=cfg["proximity"]["decay_km"],
@@ -273,7 +277,8 @@ def main():
 
     if not os.path.exists(a.db):
         raise SystemExit(f"No {a.db} here. Run sponsor_pipeline.py first.")
-    cfg = yaml.safe_load(open(a.config))
+    import sponsor_scoring as ss
+    cfg = ss.load_config(a.config)
     conn = sqlite3.connect(a.db)
     html = open(TEMPLATE, encoding="utf-8").read()
     if MARK not in html:

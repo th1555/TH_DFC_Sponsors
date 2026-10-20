@@ -242,6 +242,10 @@ footer{padding:24px 0 40px;color:var(--muted);font-size:14px}
 .score i s.ai{background:repeating-linear-gradient(45deg,#9AA2A9 0 3px,#C5CBD0 3px 5px);border-radius:0 2px 2px 0}
 .score i s.rec{border-radius:0}
 .score i s.hand{background:#9C7BAA;border-radius:0}
+.score i s.counted{background:#4E7A5E;border-radius:0}
+.pb .bar i.counted{background:#4E7A5E}
+.lg.counted .tr i{background:#4E7A5E}
+.lg .k2{display:block;font-size:12px;color:var(--faint);line-height:1.25}
 .pb .bar i.hand{background:#9C7BAA}
 .lg.hand .tr i{background:#9C7BAA}
 .fb{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:999px;background:#E3EFE6;color:#1D5130;font-size:11.5px;font-weight:700;vertical-align:2px;box-shadow:inset 0 0 0 1px #B9D5C1}
@@ -459,10 +463,10 @@ table.ons th{font-size:12.5px;color:var(--muted)}
     </div>
     <div style="display:grid;gap:20px;align-content:start">
     <section class="card">
-      <h2>Sector ratings <span class="src hand" style="vertical-align:4px">Hand-set</span></h2>
-      <p style="font-size:14.5px;color:var(--muted)">Our rating of how likely each kind of business is to back a town club like Dumbarton, on a 0 to 1 scale. Set by hand from how lower-league clubs are usually sponsored, not measured. The line marks the middle.</p>
+      <h2 id="secTitle">Sector ratings</h2>
+      <p style="font-size:14.5px;color:var(--muted)" id="secIntro"></p>
       <div id="sectorBars"></div>
-      <p class="hint" style="margin-top:10px">Only two rows rest on evidence so far: coaches (Marbill) and industry and business services (the club's current sponsors). The next update replaces these ratings with counts from real sponsor lists across Scottish clubs.</p>
+      <p class="hint" style="margin-top:10px" id="secNote"></p>
     </section>
     <section class="card" id="sizeMethod"></section>
     <section class="card" id="footMethod"></section>
@@ -522,6 +526,10 @@ const FACT_K = ["proximity","company_stability","ability_to_pay"];
 const recPts = b => FACT_K.reduce((a,k) => a + (b.parts[k]?.points || 0), 0);
 const handPts = b => b.parts.sector_propensity?.points || 0;
 const HAND_TOT = DATA.weights.sector_propensity || 0;
+const SECM = Object.fromEntries((DATA.sectors || []).map(s => [s.key, s]));
+const secCounted = b => (SECM[b.sector] || {}).method === "counted";
+const ANY_COUNTED = (DATA.sectors || []).some(s => s.method === "counted");
+const pct = v => v == null ? "–" : (v * 100 < 10 ? (v * 100).toFixed(1) : Math.round(v * 100)) + "%";
 const aiPts = b => SOFT_K.reduce((a,k) => a + (b.soft_parts?.[k]?.points || 0), 0);
 const REC_TOT = FACT_K.reduce((a,k) => a + (DATA.weights[k] || 0), 0);
 const AI_TOT = SOFT_K.reduce((a,k) => a + (DATA.weights[k] || 0), 0);
@@ -655,8 +663,8 @@ const SORTNAME = {name:"name", distance_km:"distance", sector_label:"sector", ye
 
 /* ---------- render ---------- */
 let LIST = [];
-const scoreCell = b => { const rp = recPts(b), hp = handPts(b), ap = Math.max(0, b.score - rp - hp);
-  return `<span class="score" title="${f0(rp)} from records + ${f0(hp)} hand-set sector rating + ${f0(ap)} from AI readings">${f0(b.score)}<i><s class="rec ${b.score >= topCut ? "top" : ""}" style="width:${Math.max(2, rp)}%"></s><s class="hand" style="left:${rp}%;width:${hp}%"></s><s class="ai" style="left:${rp + hp}%;width:${ap}%"></s></i></span>`; };
+const scoreCell = b => { const rp = recPts(b), hp = handPts(b), ap = Math.max(0, b.score - rp - hp), cs = secCounted(b);
+  return `<span class="score" title="${f0(rp)} from records + ${f0(hp)} ${cs ? "counted" : "hand-set"} sector rating + ${f0(ap)} from AI readings">${f0(b.score)}<i><s class="rec ${b.score >= topCut ? "top" : ""}" style="width:${Math.max(2, rp)}%"></s><s class="${cs ? "counted" : "hand"}" style="left:${rp}%;width:${hp}%"></s><s class="ai" style="left:${rp + hp}%;width:${ap}%"></s></i></span>`; };
 const footBadge = b => { const f = b.football || []; if (!f.length) return "";
   const t = f.map(x => `${x.club} (${x.seasons.join(", ")})`).join("; ");
   return `<span class="fb" title="Sponsored: ${esc(t)}">Football sponsor${f.length > 1 ? " ×" + f.length : ""}</span>`; };
@@ -692,7 +700,7 @@ function render(){
   fixGroups();
   if (!$("viewC").hidden) drawScatter();
 }
-$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;out of 100. Dark: points from records (${REC_TOT} available). Purple: the hand-set sector rating (${HAND_TOT}). Striped: AI readings of the business's website (${AI_TOT}). Gold: top 10% of this list.</span><span><span class="est-tag" style="margin:0">est.</span>&nbsp;revenue estimated from the typical turnover for that industry and size. "–" means we don't have it; hover for why.</span><span><span class="warm" style="margin:0">Tag</span>&nbsp;a recorded local connection: current sponsor, warm path, or a director based locally. It counts as local presence.</span>`;
+$("tfoot").innerHTML = `<span><b>${SCORE_NAME}:</b>&nbsp;out of 100. Dark: points from records (${REC_TOT} available). ${ANY_COUNTED ? "Green: the sector rating counted from club sponsor lists; purple where a sector is still hand-set" : "Purple: the hand-set sector rating"} (${HAND_TOT}). Striped: AI readings of the business's website (${AI_TOT}). Gold: top 10% of this list.</span><span><span class="est-tag" style="margin:0">est.</span>&nbsp;revenue estimated from the typical turnover for that industry and size. "–" means we don't have it; hover for why.</span><span><span class="warm" style="margin:0">Tag</span>&nbsp;a recorded local connection: current sponsor, warm path, or a director based locally. It counts as local presence.</span>`;
 
 /* ---------- events ---------- */
 $("head").onclick = e => {
@@ -844,7 +852,9 @@ function drawScatter(){
   $("mTitle").textContent = 'What the Fit score means';
   $("mBody").innerHTML = `<p>The Fit score is out of 100 and comes from three kinds of evidence, kept apart so you can see which is which.</p>`
     + `<p>${srcTag("reported")} <strong>${REC_TOT} points from records:</strong> how close the business is to the ground (or a recorded local connection), how long it has been trading, and its size. Being local counts for most, size for least.</p>`
-    + `<p>${srcTag("hand")} <strong>${HAND_TOT} points from a sector rating</strong>: our judgment of how likely this kind of business is to back a town club, set by hand (see Sector ratings). It's what keeps national chains and online shops low. It will be replaced by counts from real sponsor lists.</p>`
+    + (ANY_COUNTED
+      ? `<p>${srcTag("reported")} <strong>${HAND_TOT} points from a sector rating</strong>, counted from the sponsor lists of Scottish clubs like Dumbarton: how common each kind of business is among their sponsors compared with all Scottish businesses (see Sector ratings). National chains and unclassified businesses are still ${srcTag("hand")}.</p>`
+      : `<p>${srcTag("hand")} <strong>${HAND_TOT} points from a sector rating</strong>: our judgment of how likely this kind of business is to back a town club, set by hand (see Sector ratings). It's what keeps national chains and online shops low. It will be replaced by counts from real sponsor lists.</p>`)
     + `<p>${srcTag("ai")} <strong>${AI_TOT} points from AI readings</strong> of the business's own website: its local roots, how well backing a town club suits it, and any sign of community support. Where a website is thin or missing, the reading is held at the middle so it can't help or hurt.</p>`
     + `<p>"Records only" (in the table on wide screens) rescales just the record points to 100, leaving out the sector rating and the AI readings, for anyone who wants to rank on facts alone. Employees and revenue are shown for context and don't change the score.</p>`
     + `<p>The suggested approach comes from the sector and size: trade businesses tend to want the programme and the website, shops and pubs want to be seen on matchday.</p>`;
@@ -856,15 +866,24 @@ function drawScatter(){
   const keys = Object.keys(W).sort((a,b) => W[b] - W[a]), max = Math.max(...keys.map(k => W[k]));
   const scale = 100;
   $("weightBars").innerHTML = keys.map(k => `
-    <div class="lg${k === "proximity" ? " base" : ""}${k === "sector_propensity" ? " hand" : hard.includes(k) ? "" : " soft"}"><span>${esc(PART[k][0])}</span>
+    <div class="lg${k === "proximity" ? " base" : ""}${k === "sector_propensity" ? (ANY_COUNTED ? " counted" : " hand") : hard.includes(k) ? "" : " soft"}"><span>${esc(PART[k][0])}</span>
       <span class="tr"><i style="width:${(W[k]/max*100).toFixed(1)}%"></i></span>
       <span class="v">${Math.round(W[k]/scale*100)}%</span></div>`).join("")
-    + `<p class="hint" style="margin-top:10px">Share of the Fit score. Purple: hand-set. Striped: AI readings of the business's website.</p>`;
+    + `<p class="hint" style="margin-top:10px">Share of the Fit score. ${ANY_COUNTED ? "Green: sector rating counted from sponsor lists." : "Purple: hand-set."} Striped: AI readings of the business's website.</p>`;
   const secs = [...DATA.sectors].sort((a,b) => b.propensity - a.propensity);
-  $("sectorBars").innerHTML = secs.map(s => `
-    <div class="lg${s.propensity >= .85 ? " base" : ""}"><span>${esc(s.label)}</span>
+  const sm = DATA.sector_meta || {};
+  $("secTitle").innerHTML = `Sector ratings ${ANY_COUNTED ? srcTag("reported") : srcTag("hand")}`;
+  $("secIntro").textContent = ANY_COUNTED
+    ? `How much more (or less) common each kind of business is among the sponsors of clubs like Dumbarton than among Scottish businesses generally, on a 0 to 1 scale. 0.5 is average; 0.75 means three times as common. The line marks the middle.`
+    : `Our rating of how likely each kind of business is to back a town club like Dumbarton, on a 0 to 1 scale. Set by hand from how lower-league clubs are usually sponsored, not measured. The line marks the middle.`;
+  $("secNote").textContent = ANY_COUNTED
+    ? `Counted from ${sm.sponsors_counted || "–"} sponsors of clubs from League One down to the West of Scotland League, ${(sm.methods && sm.methods.ai) ? sm.methods.ai + " of them classified by the AI from their name; " : ""}businesses by industry from the ONS business register. Small counts are pulled towards the middle. Rows marked Hand-set can't be measured this way.`
+    : `Only two rows rest on evidence so far: coaches (Marbill) and industry and business services (the club's current sponsors). The next update replaces these ratings with counts from real sponsor lists across Scottish clubs.`;
+  $("sectorBars").innerHTML = secs.map(s => { const c = s.method === "counted";
+    const detail = c ? `${s.sponsors} sponsor${s.sponsors === 1 ? "" : "s"} (${pct(s.sponsor_share)}) vs ${pct(s.business_share)} of businesses` : (ANY_COUNTED ? "hand-set" : "");
+    return `<div class="lg${c ? " counted" : s.propensity >= .85 ? " base" : ""}" title="${esc(detail)}${c && s.hand_set != null ? ` · was ${Number(s.hand_set).toFixed(2)} hand-set` : ""}"><span>${esc(s.label)}${detail ? `<span class="k2">${esc(detail)}</span>` : ""}</span>
       <span class="tr"><i style="width:${(s.propensity*100).toFixed(1)}%"></i><s style="left:50%"></s></span>
-      <span class="v">${s.propensity.toFixed(2)}</span></div>`).join("");
+      <span class="v">${s.propensity.toFixed(2)}</span></div>`; }).join("");
 
   // employees and revenue: how they're worked out, with the ONS lines in use
   const n = BIZ.length, cnt = f => BIZ.filter(f).length;
@@ -893,9 +912,9 @@ function drawScatter(){
 let lastFocus = null;
 function pbar(k, part, soft){
   const frac = part.weight ? part.points / part.weight : 0;
-  const sub = part.via ? "lifted by a local connection: " + part.via : PART[k][1];
+  const sub = part.via ? "lifted by a local connection: " + part.via : part.sub || PART[k][1];
   return `<div class="pb"><span class="k">${esc(PART[k][0])}<small>${esc(sub)}</small></span>
-    <span class="bar"><i class="${soft === "hand" ? "hand" : soft ? "soft" : frac >= .85 ? "top" : ""}" style="width:${Math.max(2, frac*100)}%"></i></span>
+    <span class="bar"><i class="${soft === "hand" || soft === "counted" ? soft : soft ? "soft" : frac >= .85 ? "top" : ""}" style="width:${Math.max(2, frac*100)}%"></i></span>
     <span class="pv">${part.points.toFixed(1)} <small>of ${part.weight}</small></span></div>`;
 }
 function openBiz(n, from){
@@ -938,8 +957,10 @@ function openBiz(n, from){
         <p class="sub">Points earned out of the points available for each part.</p>
         <div class="pbhead"><span>${srcTag("reported")} From records</span><span>${recPts(b).toFixed(1)} of ${REC_TOT}</span></div>
         ${FACT_K.map(k => pbar(k, b.parts[k], false)).join("")}
-        <div class="pbhead"><span>${srcTag("hand")} Sector rating</span><span>${handPts(b).toFixed(1)} of ${HAND_TOT}</span></div>
-        ${pbar("sector_propensity", b.parts.sector_propensity, "hand")}
+        <div class="pbhead"><span>${srcTag(secCounted(b) ? "reported" : "hand")} Sector rating</span><span>${handPts(b).toFixed(1)} of ${HAND_TOT}</span></div>
+        ${pbar("sector_propensity", {...b.parts.sector_propensity, sub: secCounted(b)
+            ? `counted: ${SECM[b.sector].sponsors} club sponsor${SECM[b.sector].sponsors === 1 ? "" : "s"} (${pct(SECM[b.sector].sponsor_share)}) vs ${pct(SECM[b.sector].business_share)} of Scottish businesses`
+            : PART.sector_propensity[1]}, secCounted(b) ? "counted" : "hand")}
         ${b.soft_parts ? `<div class="pbhead"><span>${srcTag("ai")} From AI readings of its website</span><span>${aiPts(b).toFixed(1)} of ${AI_TOT}</span></div>`
           + Object.keys(b.soft_parts).map(k => pbar(k, b.soft_parts[k], true)).join("") : ""}
       </section>

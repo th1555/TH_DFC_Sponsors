@@ -51,7 +51,8 @@ def load_config(path=CONFIG_PATH) -> dict:
     total = sum(cfg["weights"].values())
     if round(total) != 100:
         raise ValueError(f"weights must sum to 100, got {total}")
-    return cfg
+    import sponsor_sectors                 # counted sector ratings, where we have them
+    return sponsor_sectors.apply_learned(cfg)
 
 
 # ---------------------------------------------------------------------------
